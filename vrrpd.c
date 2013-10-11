@@ -62,6 +62,9 @@ static char	upscript[FILENAME_MAX+1];
 uint32_t 	magicsipaddr;
 char		magicdipaddr[FILENAME_MAX+1];
 FILE *f;
+static time_t timenow;
+static char *timenowstring;
+static int mypid;
 
 /****************************************************************
  NAME	: Monitoring only
@@ -77,7 +80,6 @@ char statetemp2[FILENAME_MAX+1];
 char temp2[2] = "/";
 int monitor;
 int monitortemp;
-int mypid;
 int pid;
 int ix2;
 int maxrand = 10;
@@ -95,10 +97,10 @@ char statedown[FILENAME_MAX+1];
 void killvrrpd(int killnu,char *ifname)
 
 {
- 	int mypid = getpid();
 	vrrp_rt	*vsrv = &glob_vsrv;
 	char namepid[FILENAME_MAX+1]="vrrpd_";
 	int ix2;
+	mypid = getpid();
 
 	for (ix2=1; ix2 <= ix; ix2++) {
 		sprintf (&statedown[24],"%d",ix2);
@@ -111,7 +113,7 @@ void killvrrpd(int killnu,char *ifname)
 					if (monitor){
 						f = fopen(statedown,"w");
                         			fprintf(f, "%d", mypid );
-						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: pid: %d :Globalstatedown1:%s Statedown1:%s",vsrv->vrid, ifname, mypid,globalstatedown, statedown);
+						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: pid: %d :Remove global state down:%s Statedown:%s",vsrv->vrid, ifname, mypid,globalstatedown, statedown);
 	             	         		fclose(f);
 					}
 					strcpy(globalstatedown,statedown);
@@ -1134,10 +1136,10 @@ int ethsup(vrrp_rt *vsrv)
 {
 	int skfd = -1;
 	char *ifname;
-	mypid = getpid();
 	ifname = vsrv->vif.ifname;
         char buf[80];
 	char ch[4];
+	mypid = getpid();
 
 	// Ugly but slowly ...
 	nb=rand() % (maxrand+1);
@@ -1339,7 +1341,10 @@ static void state_goto_master( vrrp_rt *vsrv )
 		}
 		wait(NULL);
 	}
-
+	if (timenow != ((time_t)-1)){
+ 		timenow = time(NULL);	
+		timenowstring = ctime(&timenow);
+	}
 	if (strlen(magicdipaddr) && (magicsipaddr != 0 )) {
 		hello_send_pkt(vsrv,vsrv->vaddr[i].addr);
 	}
@@ -1388,6 +1393,11 @@ static void state_init( vrrp_rt *vsrv )
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
 		vsrv->state = VRRP_STATE_BACK;
 		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - State INIT -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+	        if (timenow != ((time_t)-1)){
+       			timenow = time(NULL);
+               		timenowstring = ctime(&timenow);
+        	}
+
 	}
 }
 
@@ -1496,6 +1506,10 @@ if( vsrv->state != VRRP_STATE_BACK ){
 			VRRP_TIMER_CLR( vsrv->adver_timer );
 			/* don't remove */
 			sleep(5);
+			if (timenow != ((time_t)-1)){
+		                timenow = time(NULL);
+                		timenowstring = ctime(&timenow);
+        		}
 		}
 	} else {
 		vsrv->wantstate = VRRP_STATE_INIT;
@@ -1565,12 +1579,26 @@ static void signal_end( int nosig )
 static void writestate()
 {
 	vrrp_rt	*vsrv = &glob_vsrv;
+	mypid = getpid();
 	if ((f = fopen("/tmp/.vrrpstate", "w")) != NULL){
 		fprintf(f, "%d", vsrv->state);
+		fclose(f);
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information process : %d", mypid);
 		vrrpd_log(LOG_WARNING, "vrrpd: %s", VRRPD_VERSION);
 		vrrpd_log(LOG_WARNING, "vrrpd: priority %d", vsrv->priority);
-		vrrpd_log(LOG_WARNING, "vrrpd: vmac %d", vsrv->no_vmac);
-		fclose(f);
+		if (vsrv->no_vmac == 0)
+			vrrpd_log(LOG_WARNING, "vrrpd: vmac on");
+		if (vsrv->no_vmac == 1)
+			vrrpd_log(LOG_WARNING, "vrrpd: vmac off");
+		if (vsrv->state == 3)
+                        vrrpd_log(LOG_WARNING, "vrrpd: state MASTER since %s", timenowstring);
+		else 
+			vrrpd_log(LOG_WARNING, "vrrpd: state BACKUP since %s", timenowstring);	
+		vrrpd_log(LOG_WARNING, "vrrpd: Virtual ID: %d", vsrv->vrid);
+		if (monitor)		
+			vrrpd_log(LOG_WARNING, "vrrpd: monitoring process: %d", monitor);
+		else
+			vrrpd_log(LOG_WARNING, "vrrpd: monitoring process: off");
 	} else { 
 		vrrpd_log(LOG_WARNING, "vrrpd: WARINING critical /tmp is not writable");
 	}
