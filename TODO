@@ -1,0 +1,26 @@
+Feature:
+- launch a script according to the state change.
+- add a test to set automatically the priority to 255 when the host
+  own the ip addresses
+- as vrrpd needs root access, audit the code security.
+- test interoperability.
+- code the plain text authentication and hardcode AH.
+- make the master down interval tunable.
+- work only with ethernet, all is hardcoded. it is ugly.
+  see what you can do for fddi/tokenring -> problem i dont have the hardware
+  so i can't test.
+- beautifull the code.
+
+
+- change the state according to unix signal USR1=be master, USR2=be backup
+  pid stored in a file vrrpd_[IF]_[VRID].pid (e.g. vrrp_eth0_50.pid) DONE
+- provide a mode in which you don't change the MAC address and thus support
+  multiple virtual router per physical interface. DONE (-n)
+
+
+Things to test:
+- vrrpd vs commercial version
+- vrrpd vs vrrpd
+- multiple authentications (NONE,passwd, AH)
+- checksum
+

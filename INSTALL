@@ -1,0 +1,10 @@
+1. uncompress the source
+2. cd in the directory
+3. type 'make clean' and 'make'
+4. if everything is ok, there is now a file 'vrrpd' and 'atropos' in the directory
+5. copy vrrpd iand atropos in your path (e.g /usr/sbin) and vrrpd.8 in your man path
+   (e.g. /usr/man/man8)
+
+it requires to be run as root.
+
+

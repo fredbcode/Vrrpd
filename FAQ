@@ -1,0 +1,109 @@
+vrrpd is a deamon which support the VRRP v2 protocol as specified in rfc2338.
+
+-------------------------------------------------------------------
+Introduction:
+
+Q. what is VRRPd ?
+   vrrpd is an implementation of VRRPv2 as specified in rfc2338. It run
+   in userspace for linux. 
+
+Q. what is VRRP ?
+A. In short, VRRP is a protocol which elects a master server on a LAN and
+   the master answers to a 'virtual ip address'. If it fails, a backup 
+   server takes over the ip address.
+
+   A longuer answer in the rfc2338 abstract :
+  "This memo defines the Virtual Router Redundancy Protocol (VRRP).
+   VRRP specifies an election protocol that dynamically assigns
+   responsibility for a virtual router to one of the VRRP routers on a
+   LAN.  The VRRP router controlling the IP address(es) associated with
+   a virtual router is called the Master, and forwards packets sent to
+   these IP addresses.  The election process provides dynamic fail over
+   in the forwarding responsibility should the Master become
+   unavailable.  This allows any of the virtual router IP addresses on
+   the LAN to be used as the default first hop router by end-hosts.  The
+   advantage gained from using VRRP is a higher availability default
+   path without requiring configuration of dynamic routing or router
+   discovery protocols on every end-host."
+   
+Copyright (C) The Internet Society (1998).  All Rights Reserved.
+
+NOTE: the RFC keep talking about routers for historical reasons but the
+protocol isn't dedicated to routers and it can used it for any kind of
+server.
+
+-------------------------------------------------------------------
+Configuration:
+
+Q. how can i set up the 'ip authentication header' ?
+A. Ip authentication header is the long name for AH (rfc2402) and is
+   outside the scope of vrrpd. To have this protection, you should 
+   configure IPSec.
+
+Q. What are the required options to compiled in the kernel ?
+A. Set the following options:
+	IP aliasing:	to have several IP addresses per interface
+	Kernel/User netlink socket: to communicate between the process
+			and the kernel
+ 	Routing messages: to add/del ip addresses for an interface
+
+-------------------------------------------------------------------
+Trouble shot:
+
+Q. When i launch vrrpd, it display 'cant open raw socket', why ?
+A. try running it as root.
+   vrrpd does several operations (set ip address, MAC address, send/rcv
+   packet directly from the link) which require root access. 
+
+Q. Why i can't have more than one virtual router per physical interface ?
+A. you can with the -n option which prevents vrrpd to handle the virtual MAC.
+   It isnt compliant to the rfc but work in practice.
+   VRRP requires to use a special MAC address for the ip packets with 
+   the address of the virtual router. Currently, as far as i know, 
+   linux doesnt support several MAC on transmition. so a host can't
+   be MASTER of several group at the same time.
+   It is possible to workaround this limitation by connecting several
+   physical interfaces to the same link.
+
+Q. vrrpd doesn't set the virtual router addresses when it become master, why ?
+A. It is likely a problem when it try to set several addresses to 
+   the interface. the kernel must support ip aliasing.
+   (linux configuration: Networking Option: IP aliasing support).
+
+Q. why it doesn't work with the implementation made by XXXX ?
+A. currently i have tested any inter-operability because i dont have
+   any other implementations available.
+   i did some intra-operabilty tests and it seems to work.
+
+-------------------------------------------------------------------
+Technical:
+
+Q. What are the supported OS ?
+A. currently only linux. it is my development platform and don't have
+   others available.
+
+Q. How hard would it be to port it on another OS ?
+A. i don't know. i use several 'low level' features which may be different
+   or unavailable on other OS. a list follow:
+   SIOCGIFADDR/SIOCSIFADDR to set/get the 'primary' hardware address 
+   SIOCADDMULTI/SIOCDELMULTI to add/remove a 'receiving' hardware address
+   Use netlink to change the ip address, a clean but non standard way.
+
+Q. why vrrp packets are build by hand from vrrp payload to ethernet header ?
+A. the vrrp packets are send directly over the link without using a
+   SOCK_RAW/IP_HDRINCL because of a requirement in the rfc2338.7.2
+   "Set the source MAC address to the Virtual Router MAC Address"
+
+Q. how the MAC address change is handled ?
+A. I set the interface MAC address to the vrrp one.
+   I set the original MAC address as a receiving MAC (multicast).
+   thus i can send/receive packet with vrrp MAC and still receive
+   packet with the old MAC. This avoid a system disruption at
+   each change. nevertheless it prevent the user from running several
+   virtual routers on a single physical interface.
+
+Q. how the IP address change is handled ?
+A. The virtual router addresses are set/removed as ip aliases. the 
+   primary ip address of the interface is never modified.
+   Thus the connections using the primary ip (tcp or other) go on 
+   without trouble.

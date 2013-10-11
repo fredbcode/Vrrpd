@@ -1,0 +1,77 @@
+.\" -*- nroff -*-
+.TH VRRPD 8 "September 2000" "vrrpd(8)" "Vrrpd's Manual"
+.SH NAME
+vrrpd \- Virtual Router Redundancy Protocol Deamon
+.SH SYNOPSIS
+.B vrrpd
+-i ifname -v vrid [-s] [-a auth] [-p prio] [-nh] ipaddr
+.SH DESCRIPTION
+vrrpd is an implementation of VRRPv2 as specified in rfc2338. It run
+in userspace for linux.
+In short, VRRP is a protocol which elects a master server on a LAN and
+the master answers to a 'virtual ip address'. If it fails, a backup
+server takes over the ip address.
+
+A longuer answer in the rfc2338 abstract :
+"This memo defines the Virtual Router Redundancy Protocol (VRRP).
+VRRP specifies an election protocol that dynamically assigns
+responsibility for a virtual router to one of the VRRP routers on a
+LAN.  The VRRP router controlling the IP address(es) associated with
+a virtual router is called the Master, and forwards packets sent to
+these IP addresses.  The election process provides dynamic fail over
+in the forwarding responsibility should the Master become
+unavailable.  This allows any of the virtual router IP addresses on
+the LAN to be used as the default first hop router by end-hosts.  The
+advantage gained from using VRRP is a higher availability default
+path without requiring configuration of dynamic routing or router
+discovery protocols on every end-host."
+Copyright (C) The Internet Society (1998).  All Rights Reserved.
+
+
+.SS OPTIONS
+.TP 
+.I "-h"
+display this short inlined help
+.TP 
+.I "-n"
+Dont handle the virtual mac address
+.TP 
+.I "-i ifname"
+the interface name to run on
+.TP 
+.I "-v vrid"
+the id of the virtual server [1-255]
+.TP 
+.I "-s"
+Switch the preemption mode (Enabled by default)
+.TP 
+.I "-a auth"
+(not yet implemented) set the authentification type
+auth=(none|pw/hexkey|ah/hexkey) hexkey=0x[0-9a-fA-F]+
+Password is a symbolic security, anybody with a sniffer can break it.
+AH is a bit stronger but not yet implemented.
+.TP 
+.I "-p prio"
+Set the priority of this host in the virtual server (dfl: 100)
+.TP 
+.I "-f piddir"
+specify the directory where the pid file is stored (dfl: /var/run)
+.TP 
+.I "-d delay"
+Set the advertisement interval (in sec) (dfl: 1)
+.TP 
+.I "ipaddr"
+the ip address(es) of the virtual server
+
+.SH EXAMPLES
+vrrpd -i eth0 -v 50 10.0.0.1
+
+run vrrp on the interface eth0 with the virtual id 50 and 10.0.0.1 as virtual
+ip address
+
+.SH AUTHOR
+.B vrrpd
+was written by Jerome Etienne <jetienne@arobas.net>
+.SH BUGS
+If you find bugs, tell me.
+

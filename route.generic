@@ -1,0 +1,1130 @@
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/Documentation/networking/ip-sysctl.txt linux-lt-2.3.99-pre3/Documentation/networking/ip-sysctl.txt
+--- linux-lt-2.3.99-pre3.prev/Documentation/networking/ip-sysctl.txt	Sun Jan 23 03:54:56 2000
++++ linux-lt-2.3.99-pre3/Documentation/networking/ip-sysctl.txt	Tue Mar 28 19:40:59 2000
+@@ -262,13 +262,21 @@
+ 	Do proxy arp.
+ 
+ shared_media - BOOLEAN
+-	Send(router) or accept(host) RFC1620 shared media redirects.
++	Do not check the new gateway specified in incoming ICMP redirect
++	messages for belonging to a directly attached network (i.e. the
++	routing table has for this address an entry pointing to the given
++	device, doesn't have a gateway, and with scope not wider SCOPE_LINK).
++	If this variable is TRUE then new gateways are only checked for being a
++	unicast addresses.  If it is FALSE then the full check described
++	above is performed.  See RFC1620 for background information about
++	shared media.
+ 	Overrides ip_secure_redirects.
+ 	default TRUE
+ 
+ secure_redirects - BOOLEAN
+-	Accept ICMP redirect messages only for gateways,
+-	listed in default gateway list.
++	Accept ICMP redirect messages only for gateways already listed as
++	gateways in the routing tables.  This check is performed only when
++	`shared_media' is FALSE.
+ 	default TRUE
+ 
+ send_redirects - BOOLEAN
+@@ -287,6 +295,19 @@
+ 	default TRUE (router)
+ 		FALSE (host)
+ 
++source_check - BOOLEAN
++	Check source address for outgoing packets.
++	If source_check is turned on all outgoing packets (including going
++	through a loopback interface) are checked for the source address
++	being local.  An address is considered as local for this purposes if
++	a route lookup in the opposite direction (i.e. with source and
++	destination addresses being reversed) gives a unicast local route
++	entry.
++	Note: source addresses are always checked for being not a multicast,
++	limited broadcast, zero net, or loopback (for non-loopback
++	interfaces) independetly of the setting of the option.
++	default TRUE
++
+ rp_filter - BOOLEAN
+ 	1 - do source validation by reversed path, as specified in RFC1812
+ 	    Recommended option for single homed hosts and stub network
+@@ -305,4 +326,8 @@
+ Updated by:
+ Andi Kleen
+ ak@muc.de
++
++Andrey Savochkin
++saw@msu.ru
++
+ $Id: route.generic,v 1.1.1.1 2002/09/09 14:51:13 imagestream Exp $
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/include/linux/in_route.h linux-lt-2.3.99-pre3/include/linux/in_route.h
+--- linux-lt-2.3.99-pre3.prev/include/linux/in_route.h	Fri Jun 12 13:52:33 1998
++++ linux-lt-2.3.99-pre3/include/linux/in_route.h	Tue Mar 28 19:39:49 2000
+@@ -4,6 +4,7 @@
+ /* IPv4 routing cache flags */
+ 
+ #define RTCF_DEAD	RTNH_F_DEAD
++#define RTCF_PERVASIVE	RTNH_F_PERVASIVE
+ #define RTCF_ONLINK	RTNH_F_ONLINK
+ 
+ /* Obsolete flag. About to be deleted */
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/include/linux/inetdevice.h linux-lt-2.3.99-pre3/include/linux/inetdevice.h
+--- linux-lt-2.3.99-pre3.prev/include/linux/inetdevice.h	Tue Aug 24 01:01:02 1999
++++ linux-lt-2.3.99-pre3/include/linux/inetdevice.h	Tue Mar 28 19:39:49 2000
+@@ -9,6 +9,7 @@
+ 	int	send_redirects;
+ 	int	secure_redirects;
+ 	int	shared_media;
++	int	source_check;
+ 	int	accept_source_route;
+ 	int	rp_filter;
+ 	int	proxy_arp;
+@@ -46,6 +47,7 @@
+ #define IN_DEV_SHARED_MEDIA(in_dev)	(ipv4_devconf.shared_media || (in_dev)->cnf.shared_media)
+ #define IN_DEV_TX_REDIRECTS(in_dev)	(ipv4_devconf.send_redirects || (in_dev)->cnf.send_redirects)
+ #define IN_DEV_SEC_REDIRECTS(in_dev)	(ipv4_devconf.secure_redirects || (in_dev)->cnf.secure_redirects)
++#define IN_DEV_SRC_CHECK(in_dev)	(ipv4_devconf.source_check || (in_dev)->cnf.source_check)
+ #define IN_DEV_IDTAG(in_dev)		((in_dev)->cnf.tag)
+ 
+ #define IN_DEV_RX_REDIRECTS(in_dev) \
+@@ -73,7 +75,6 @@
+ extern int unregister_inetaddr_notifier(struct notifier_block *nb);
+ 
+ extern struct net_device 	*ip_dev_find(u32 addr);
+-extern int		inet_addr_onlink(struct in_device *in_dev, u32 a, u32 b);
+ extern int		devinet_ioctl(unsigned int cmd, void *);
+ extern void		devinet_init(void);
+ extern struct in_device *inetdev_init(struct net_device *dev);
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/include/linux/rtnetlink.h linux-lt-2.3.99-pre3/include/linux/rtnetlink.h
+--- linux-lt-2.3.99-pre3.prev/include/linux/rtnetlink.h	Thu Feb 10 12:08:09 2000
++++ linux-lt-2.3.99-pre3/include/linux/rtnetlink.h	Tue Mar 28 19:39:49 2000
+@@ -224,9 +224,11 @@
+ 
+ /* rtnh_flags */
+ 
+-#define RTNH_F_DEAD		1	/* Nexthop is dead (used by multipath)	*/
+-#define RTNH_F_PERVASIVE	2	/* Do recursive gateway lookup	*/
+-#define RTNH_F_ONLINK		4	/* Gateway is forced on link	*/
++#define RTNH_F_DEAD		0x01	/* Nexthop is dead (used by multipath)	*/
++#define RTNH_F_PERVASIVE	0x02	/* Omit gateway & pref_src test	*/
++#define RTNH_F_ONLINK		0x04	/* Gateway is forced on link	*/
++#define RTNH_F_GLUE		0x08	/* Nexthop is glued		*/
++#define RTNH_F_USEFIRST		0x10	/* Use only it (for multipath)	*/
+ 
+ /* Macros to handle hexthops */
+ 
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/include/linux/sysctl.h linux-lt-2.3.99-pre3/include/linux/sysctl.h
+--- linux-lt-2.3.99-pre3.prev/include/linux/sysctl.h	Thu Mar  9 01:16:24 2000
++++ linux-lt-2.3.99-pre3/include/linux/sysctl.h	Tue Mar 28 19:39:49 2000
+@@ -302,7 +302,8 @@
+ 	NET_IPV4_CONF_ACCEPT_SOURCE_ROUTE=9,
+ 	NET_IPV4_CONF_BOOTP_RELAY=10,
+ 	NET_IPV4_CONF_LOG_MARTIANS=11,
+-	NET_IPV4_CONF_TAG=12
++	NET_IPV4_CONF_TAG=12,
++	NET_IPV4_CONF_SRC_CHECK=13,
+ };
+ 
+ /* /proc/sys/net/ipv6 */
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/include/net/ip_fib.h linux-lt-2.3.99-pre3/include/net/ip_fib.h
+--- linux-lt-2.3.99-pre3.prev/include/net/ip_fib.h	Tue Aug 24 01:01:02 1999
++++ linux-lt-2.3.99-pre3/include/net/ip_fib.h	Tue Mar 28 19:39:49 2000
+@@ -217,7 +217,8 @@
+ extern int fib_dump_info(struct sk_buff *skb, u32 pid, u32 seq, int event,
+ 			 u8 tb_id, u8 type, u8 scope, void *dst, int dst_len, u8 tos,
+ 			 struct fib_info *fi);
+-extern int fib_sync_down(u32 local, struct net_device *dev, int force);
++extern int fib_sync_addr_down(u32 local);
++extern int fib_sync_dev_down(struct net_device *dev, int force);
+ extern int fib_sync_up(struct net_device *dev);
+ extern int fib_convert_rtentry(int cmd, struct nlmsghdr *nl, struct rtmsg *rtm,
+ 			       struct kern_rta *rta, struct rtentry *r);
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/include/net/route.h linux-lt-2.3.99-pre3/include/net/route.h
+--- linux-lt-2.3.99-pre3.prev/include/net/route.h	Sun Mar 19 04:11:22 2000
++++ linux-lt-2.3.99-pre3/include/net/route.h	Tue Mar 28 19:39:49 2000
+@@ -106,6 +106,9 @@
+ extern void		ip_rt_send_redirect(struct sk_buff *skb);
+ 
+ extern unsigned		inet_addr_type(u32 addr);
++extern int		inet_addr_onlink(struct net_device *, u32 dst, u32 src, u8 tos);
++extern int		fib_local_source(u32 saddr, u32 daddr, u8 tos, struct net_device *);
++extern u32		fib_select_addr(struct net_device *, u32 dst, int scope);
+ extern void		ip_rt_multicast_event(struct in_device *);
+ extern int		ip_rt_ioctl(unsigned int cmd, void *arg);
+ extern void		ip_rt_get_source(u8 *src, struct rtable *rt);
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/net/ipv4/af_inet.c linux-lt-2.3.99-pre3/net/ipv4/af_inet.c
+--- linux-lt-2.3.99-pre3.prev/net/ipv4/af_inet.c	Tue Feb 22 09:35:06 2000
++++ linux-lt-2.3.99-pre3/net/ipv4/af_inet.c	Tue Mar 28 19:43:30 2000
+@@ -463,6 +463,15 @@
+ 		return -EINVAL;
+ 		
+ 	chk_addr_ret = inet_addr_type(addr->sin_addr.s_addr);
++	/* The source address check is omitted here.
++	 * We may allow to bind sockets to any address for listening purposes.
++	 * Such sockets will get only those packets which were considered as
++	 * "local" by routing (i.e. configured to go locally by the
++	 * administrator).
++	 * Outgoing packets are checked by output routing (see
++	 * ip_route_output_slow and outrt_check_src in net/ipv4/route.c).
++	 * 1999/11/13  SAW
++	 */
+ 
+ 	snum = ntohs(addr->sin_port);
+ 	if (snum && snum < PROT_SOCK && !capable(CAP_NET_BIND_SERVICE))
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/net/ipv4/arp.c linux-lt-2.3.99-pre3/net/ipv4/arp.c
+--- linux-lt-2.3.99-pre3.prev/net/ipv4/arp.c	Sun Jan 23 03:54:57 2000
++++ linux-lt-2.3.99-pre3/net/ipv4/arp.c	Tue Mar 28 19:39:50 2000
+@@ -333,10 +333,11 @@
+ 	u32 target = *(u32*)neigh->primary_key;
+ 	int probes = atomic_read(&neigh->probes);
+ 
+-	if (skb && inet_addr_type(skb->nh.iph->saddr) == RTN_LOCAL)
++	if (skb && fib_local_source(skb->nh.iph->saddr, target,
++			skb->nh.iph->tos, dev) == 0)
+ 		saddr = skb->nh.iph->saddr;
+ 	else
+-		saddr = inet_select_addr(dev, target, RT_SCOPE_LINK);
++		saddr = fib_select_addr(dev, target, RT_SCOPE_LINK);
+ 
+ 	if ((probes -= neigh->parms->ucast_probes) < 0) {
+ 		if (!(neigh->nud_state&NUD_VALID))
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/net/ipv4/devinet.c linux-lt-2.3.99-pre3/net/ipv4/devinet.c
+--- linux-lt-2.3.99-pre3.prev/net/ipv4/devinet.c	Sun Jan  9 13:36:20 2000
++++ linux-lt-2.3.99-pre3/net/ipv4/devinet.c	Tue Mar 28 19:39:50 2000
+@@ -58,8 +58,8 @@
+ #include <net/route.h>
+ #include <net/ip_fib.h>
+ 
+-struct ipv4_devconf ipv4_devconf = { 1, 1, 1, 1, 0, };
+-static struct ipv4_devconf ipv4_devconf_dflt = { 1, 1, 1, 1, 1, };
++struct ipv4_devconf ipv4_devconf = { 1, 1, 1, 1, 1, 0, };
++static struct ipv4_devconf ipv4_devconf_dflt = { 1, 1, 1, 1, 1, 1, };
+ 
+ #ifdef CONFIG_RTNETLINK
+ static void rtmsg_ifa(int event, struct in_ifaddr *);
+@@ -186,21 +186,6 @@
+ 	in_dev_put(in_dev);
+ }
+ 
+-int inet_addr_onlink(struct in_device *in_dev, u32 a, u32 b)
+-{
+-	read_lock(&in_dev->lock);
+-	for_primary_ifa(in_dev) {
+-		if (inet_ifa_match(a, ifa)) {
+-			if (!b || inet_ifa_match(b, ifa)) {
+-				read_unlock(&in_dev->lock);
+-				return 1;
+-			}
+-		}
+-	} endfor_ifa(in_dev);
+-	read_unlock(&in_dev->lock);
+-	return 0;
+-} 
+-
+ static void
+ inet_del_ifa(struct in_device *in_dev, struct in_ifaddr **ifap, int destroy)
+ {
+@@ -1027,7 +1012,7 @@
+ static struct devinet_sysctl_table
+ {
+ 	struct ctl_table_header *sysctl_header;
+-	ctl_table devinet_vars[13];
++	ctl_table devinet_vars[14];
+ 	ctl_table devinet_dev[2];
+ 	ctl_table devinet_conf_dir[2];
+ 	ctl_table devinet_proto_dir[2];
+@@ -1066,6 +1051,9 @@
+          &proc_dointvec},
+         {NET_IPV4_CONF_LOG_MARTIANS, "log_martians",
+          &ipv4_devconf.log_martians, sizeof(int), 0644, NULL,
++         &proc_dointvec},
++        {NET_IPV4_CONF_SRC_CHECK, "source_check",
++         &ipv4_devconf.source_check, sizeof(int), 0644, NULL,
+          &proc_dointvec},
+ 	{NET_IPV4_CONF_TAG, "tag",
+ 	 &ipv4_devconf.tag, sizeof(int), 0644, NULL,
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/net/ipv4/fib_frontend.c linux-lt-2.3.99-pre3/net/ipv4/fib_frontend.c
+--- linux-lt-2.3.99-pre3.prev/net/ipv4/fib_frontend.c	Thu Dec 23 11:55:38 1999
++++ linux-lt-2.3.99-pre3/net/ipv4/fib_frontend.c	Tue Mar 28 19:39:50 2000
+@@ -30,6 +30,7 @@
+ #include <linux/in.h>
+ #include <linux/inet.h>
+ #include <linux/netdevice.h>
++#include <linux/inetdevice.h>
+ #include <linux/if_arp.h>
+ #include <linux/proc_fs.h>
+ #include <linux/skbuff.h>
+@@ -168,11 +169,31 @@
+ 	return dev;
+ }
+ 
++int fib_local_source(u32 saddr, u32 daddr, u8 tos, struct net_device *dev)
++{
++	struct rt_key		key;
++	struct fib_result	res;
++
++	memset(&key, 0, sizeof(key));
++	key.src = daddr;
++	key.dst = saddr;
++	key.tos = tos;
++	key.iif = dev->ifindex;
++	if (fib_lookup(&key, &res) == 0) {
++		unsigned ret;
++		ret = res.type;
++		fib_res_put(&res);
++		if (ret != RTN_LOCAL)
++			return -EINVAL;
++	}
++	return 0;
++}
++
+ unsigned inet_addr_type(u32 addr)
+ {
+ 	struct rt_key		key;
+ 	struct fib_result	res;
+-	unsigned ret = RTN_BROADCAST;
++	unsigned		ret;
+ 
+ 	if (ZERONET(addr) || BADCLASS(addr))
+ 		return RTN_BROADCAST;
+@@ -180,21 +201,57 @@
+ 		return RTN_MULTICAST;
+ 
+ 	memset(&key, 0, sizeof(key));
++	key.src = addr;
+ 	key.dst = addr;
+-#ifdef CONFIG_IP_MULTIPLE_TABLES
+-	res.r = NULL;
+-#endif
+ 	
+-	if (local_table) {
+-		ret = RTN_UNICAST;
+-		if (local_table->tb_lookup(local_table, &key, &res) == 0) {
+-			ret = res.type;
+-			fib_res_put(&res);
+-		}
++	ret = RTN_UNICAST;
++	if (fib_lookup(&key, &res) == 0) {
++		ret = res.type;
++		fib_res_put(&res);
+ 	}
+ 	return ret;
+ }
+ 
++u32 fib_select_addr(struct net_device *dev, u32 dst, int scope)
++{
++	struct rt_key		key;
++	struct fib_result	res;
++	u32			ret;
++
++	memset(&key, 0, sizeof(key));
++	key.src = dst;
++	key.dst = dst;
++	key.oif = dev->ifindex;
++	key.scope = scope;
++	
++	if (fib_lookup(&key, &res) == 0) {
++		ret = FIB_RES_PREFSRC(res);
++		fib_res_put(&res);
++	} else
++		ret = inet_select_addr(dev, dst, scope);
++	return ret;
++}
++
++/* Check if dst is a UNICAST address and reachable via device dev */
++int inet_addr_onlink(struct net_device *dev, u32 dst, u32 src, u8 tos)
++{
++	struct rt_key key;
++	struct fib_result res;
++	int ret;
++
++	key.src = src;
++	key.dst = dst;
++	key.tos = tos;
++	key.iif = 0;
++	key.oif = 0;
++	key.scope = RT_SCOPE_LINK;
++	if (fib_lookup(&key, &res) != 0)
++		return 0;
++	ret = (res.type == RTN_UNICAST && FIB_RES_DEV(res) == dev);
++	fib_res_put(&res);
++	return ret;
++}
++
+ /* Given (packet source, input interface) and optional (dst, oif, tos):
+    - (main) check, that source is valid i.e. not broadcast or our local
+      address.
+@@ -559,7 +616,7 @@
+ 			   First of all, we scan fib_info list searching
+ 			   for stray nexthop entries, then ignite fib_flush.
+ 			*/
+-			if (fib_sync_down(ifa->ifa_local, NULL, 0))
++			if (fib_sync_addr_down(ifa->ifa_local))
+ 				fib_flush();
+ 		}
+ 	}
+@@ -571,7 +628,7 @@
+ 
+ static void fib_disable_ip(struct net_device *dev, int force)
+ {
+-	if (fib_sync_down(0, dev, force))
++	if (fib_sync_dev_down(dev, force))
+ 		fib_flush();
+ 	rt_cache_flush(0);
+ 	arp_ifdown(dev);
+@@ -591,8 +648,10 @@
+ 			/* Last address was deleted from this interface.
+ 			   Disable IP.
+ 			 */
++			printk("fib_inetaddr_event: dev down, fib_disable_ip(1)\n");
+ 			fib_disable_ip(ifa->ifa_dev->dev, 1);
+ 		} else {
++			printk("fib_inetaddr_event: dev down, fib_del_ifaddr\n");
+ 			fib_del_ifaddr(ifa);
+ 			rt_cache_flush(-1);
+ 		}
+@@ -606,11 +665,10 @@
+ 	struct net_device *dev = ptr;
+ 	struct in_device *in_dev = __in_dev_get(dev);
+ 
+-	if (!in_dev)
+-		return NOTIFY_DONE;
+-
+ 	switch (event) {
+ 	case NETDEV_UP:
++		if (!in_dev)
++			break;
+ 		for_ifa(in_dev) {
+ 			fib_add_ifaddr(ifa);
+ 		} endfor_ifa(in_dev);
+@@ -620,9 +678,18 @@
+ 		rt_cache_flush(-1);
+ 		break;
+ 	case NETDEV_DOWN:
++		printk("fib_netdev_event: dev down, fib_disable_ip(0)\n");
+ 		fib_disable_ip(dev, 0);
+ 		break;
+ 	case NETDEV_UNREGISTER:
++		/* Routes pointing to dev may still exists even when IP has
++		 * been shut down.  It may happen because routes of local type
++		 * has special nexthop (see fib_create_info() and
++		 * fib_sync_dev_down()).  I don't know if this state is valid.
++		 * Now I call fib_disable_ip() independently from if the device
++		 * has IP because otherwise stale device references are left.
++		 * 1999/11/28  SAW */
++		printk("fib_netdev_event: dev unregister, fib_disable_ip(1)\n");
+ 		fib_disable_ip(dev, 1);
+ 		break;
+ 	case NETDEV_CHANGEMTU:
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/net/ipv4/fib_semantics.c linux-lt-2.3.99-pre3/net/ipv4/fib_semantics.c
+--- linux-lt-2.3.99-pre3.prev/net/ipv4/fib_semantics.c	Tue Aug 24 01:01:02 1999
++++ linux-lt-2.3.99-pre3/net/ipv4/fib_semantics.c	Tue Mar 28 19:39:50 2000
+@@ -345,14 +345,15 @@
+ {
+ 	int err;
+ 
++	if (nh->nh_flags&RTNH_F_PERVASIVE) {
++		fi->fib_flags |= RTCF_PERVASIVE;
++		return 0;
++	}
++
+ 	if (nh->nh_gw) {
+ 		struct rt_key key;
+ 		struct fib_result res;
+ 
+-#ifdef CONFIG_IP_ROUTE_PERVASIVE
+-		if (nh->nh_flags&RTNH_F_PERVASIVE)
+-			return 0;
+-#endif
+ 		if (nh->nh_flags&RTNH_F_ONLINK) {
+ 			struct net_device *dev;
+ 
+@@ -389,7 +390,7 @@
+ 	} else {
+ 		struct in_device *in_dev;
+ 
+-		if (nh->nh_flags&(RTNH_F_PERVASIVE|RTNH_F_ONLINK))
++		if (nh->nh_flags&RTNH_F_ONLINK)
+ 			return -EINVAL;
+ 
+ 		in_dev = inetdev_by_index(nh->nh_oif);
+@@ -528,7 +529,7 @@
+ 		} endfor_nexthops(fi)
+ 	}
+ 
+-	if (fi->fib_prefsrc) {
++	if (fi->fib_prefsrc && !(fi->fib_flags&RTCF_PERVASIVE)) {
+ 		if (r->rtm_type != RTN_LOCAL || rta->rta_dst == NULL ||
+ 		    memcmp(&fi->fib_prefsrc, rta->rta_dst, 4))
+ 			if (inet_addr_type(fi->fib_prefsrc) != RTN_LOCAL)
+@@ -857,19 +858,34 @@
+    - device went down -> we must shutdown all nexthops going via it.
+  */
+ 
+-int fib_sync_down(u32 local, struct net_device *dev, int force)
++int fib_sync_addr_down(u32 local)
++{
++	int ret = 0;
++
++	if (!local)
++		goto out;
++
++	for_fib_info() {
++		if (fi->fib_prefsrc == local &&
++				!(fi->fib_flags&RTCF_PERVASIVE)) {
++			fi->fib_flags |= RTCF_DEAD;
++			ret++;
++		}
++	} endfor_fib_info();
++out:
++	return ret;
++}
++
++int fib_sync_dev_down(struct net_device *dev, int force)
+ {
+ 	int ret = 0;
+ 	int scope = RT_SCOPE_NOWHERE;
+-	
++
+ 	if (force)
+ 		scope = -1;
+ 
+ 	for_fib_info() {
+-		if (local && fi->fib_prefsrc == local) {
+-			fi->fib_flags |= RTNH_F_DEAD;
+-			ret++;
+-		} else if (dev && fi->fib_nhs) {
++		if (fi->fib_nhs) {
+ 			int dead = 0;
+ 
+ 			change_nexthops(fi) {
+@@ -886,7 +902,7 @@
+ 				}
+ 			} endfor_nexthops(fi)
+ 			if (dead == fi->fib_nhs) {
+-				fi->fib_flags |= RTNH_F_DEAD;
++				fi->fib_flags |= RTCF_DEAD;
+ 				ret++;
+ 			}
+ 		}
+@@ -947,6 +963,10 @@
+ 		int power = 0;
+ 		change_nexthops(fi) {
+ 			if (!(nh->nh_flags&RTNH_F_DEAD)) {
++				if (nh->nh_flags&RTNH_F_USEFIRST) {
++					res->nh_sel = nhsel;
++					return;
++				}
+ 				power += nh->nh_weight;
+ 				nh->nh_power = nh->nh_weight;
+ 			}
+diff -ru -x*~ linux-lt-2.3.99-pre3.prev/net/ipv4/route.c linux-lt-2.3.99-pre3/net/ipv4/route.c
+--- linux-lt-2.3.99-pre3.prev/net/ipv4/route.c	Mon Mar 27 18:25:56 2000
++++ linux-lt-2.3.99-pre3/net/ipv4/route.c	Tue Mar 28 19:57:19 2000
+@@ -711,22 +711,28 @@
+ 	struct rtable *rth, **rthp;
+ 	u32  skeys[2] = { saddr, 0 };
+ 	int  ikeys[2] = { dev->ifindex, 0 };
++	char *reason;
+ 
+ 	tos &= IPTOS_TOS_MASK;
+ 
+ 	if (!in_dev)
+ 		return;
+ 
++	reason = "bad gateway";
+ 	if (new_gw == old_gw || !IN_DEV_RX_REDIRECTS(in_dev)
+ 	    || MULTICAST(new_gw) || BADCLASS(new_gw) || ZERONET(new_gw))
+ 		goto reject_redirect;
+ 
+ 	if (!IN_DEV_SHARED_MEDIA(in_dev)) {
+-		if (!inet_addr_onlink(in_dev, new_gw, old_gw))
++		reason = "gateway not onlink";
++		if (!inet_addr_onlink(dev, new_gw, saddr, tos))
+ 			goto reject_redirect;
+-		if (IN_DEV_SEC_REDIRECTS(in_dev) && ip_fib_check_default(new_gw, dev))
++		reason = "insecure gateway";
++		if (IN_DEV_SEC_REDIRECTS(in_dev) &&
++				ip_fib_check_default(new_gw, dev))
+ 			goto reject_redirect;
+ 	} else {
++		reason = "unacceptable gateway";
+ 		if (inet_addr_type(new_gw) != RTN_UNICAST)
+ 			goto reject_redirect;
+ 	}
+@@ -816,9 +822,9 @@
+ reject_redirect:
+ #ifdef CONFIG_IP_ROUTE_VERBOSE
+ 	if (IN_DEV_LOG_MARTIANS(in_dev) && net_ratelimit())
+-		printk(KERN_INFO "Redirect from %X/%s to %X ignored."
++		printk(KERN_INFO "Redirect from %X/%s to %X ignored (%s). "
+ 		       "Path = %X -> %X, tos %02x\n",
+-		       ntohl(old_gw), dev->name, ntohl(new_gw),
++		       ntohl(old_gw), dev->name, ntohl(new_gw), reason,
+ 		       ntohl(saddr), ntohl(daddr), tos);
+ #endif
+ 	in_dev_put(in_dev);
+@@ -836,7 +842,7 @@
+ 		if ((rt->rt_flags&RTCF_REDIRECTED) || rt->u.dst.expires) {
+ 			unsigned hash = rt_hash_code(rt->key.dst, rt->key.src^(rt->key.oif<<5), rt->key.tos);
+ #if RT_CACHE_DEBUG >= 1
+-			printk(KERN_DEBUG "ip_rt_advice: redirect to %d.%d.%d.%d/%02x dropped\n", NIPQUAD(rt->rt_dst), rt->key.tos);
++			printk(KERN_DEBUG "ip_rt_advice: cache entry to %d.%d.%d.%d/%02x dropped\n", NIPQUAD(rt->rt_dst), rt->key.tos);
+ #endif
+ 			rt_del(hash, rt);
+ 			return NULL;
+@@ -1106,6 +1112,10 @@
+ }
+ #endif
+ 
++/*********************************************************************
++			 Input/output routing
++ *********************************************************************/
++
+ static void rt_set_nexthop(struct rtable *rt, struct fib_result *res, u32 itag)
+ {
+ 	struct fib_info *fi = res->fi;
+@@ -1145,6 +1155,10 @@
+         rt->rt_type = res->type;
+ }
+ 
++/*********************************************************************
++				Input
++ *********************************************************************/
++
+ static int
+ ip_route_input_mc(struct sk_buff *skb, u32 daddr, u32 saddr,
+ 		  u8 tos, struct net_device *dev, int our)
+@@ -1362,9 +1376,7 @@
+ 	if (err)
+ 		flags |= RTCF_DIRECTSRC;
+ 
+-	if (out_dev == in_dev && err && !(flags&(RTCF_NAT|RTCF_MASQ)) &&
+-	    (IN_DEV_SHARED_MEDIA(out_dev)
+-	     || inet_addr_onlink(out_dev, saddr, FIB_RES_GW(res))))
++	if (out_dev == in_dev && err && !(flags&(RTCF_NAT|RTCF_MASQ)))
+ 		flags |= RTCF_DOREDIRECT;
+ 
+ 	if (skb->protocol != __constant_htons(ETH_P_IP)) {
+@@ -1592,22 +1604,183 @@
+ 	return ip_route_input_slow(skb, daddr, saddr, tos, dev);
+ }
+ 
++/*********************************************************************
++				Output
++ *********************************************************************/
++
++/* TODO:
++    - Check if CONFIG_IP_MROUTE ifdef makes any sense.
++ */
++
++/* User supplied source address verification for output packets.
++   Such a verification can't be considered as a security measure.
++   It's rather an additional Internet protection against bugs in applications
++   (like using an uninitialized garbage as a source for UDP packets).
++ */
++static int outrt_check_src(u32 saddr, u32 daddr, u32 tos, struct net_device *dev_out)
++{
++	struct in_device	*in_dev;
++	int			src_check;
++
++	if (MULTICAST(saddr) || BADCLASS(saddr) || ZERONET(saddr))
++		return -EINVAL;
++	if (saddr == htonl(INADDR_BROADCAST))
++		return -EINVAL;
++
++	in_dev = in_dev_get(dev_out);
++	src_check = IN_DEV_SRC_CHECK(in_dev);
++	in_dev_put(in_dev);
++	if (!src_check)
++		return 0;
++
++	if (LOOPBACK(saddr) && !(dev_out->flags&IFF_LOOPBACK))
++		return -EINVAL;
++
++	return fib_local_source(saddr, daddr, tos, dev_out);
++}
++
++static int outrt_make_route(struct rtable **rp,
++	/* route lookup key */
++	struct rt_key *key,
++	/* path */
++	u32 daddr, u32 saddr, struct net_device *dev_out,
++	/* FIB lookup results (type, fi, nh.gw, nh.scope) */
++	struct fib_result *res
++	)
++{
++	struct rtable *rth;
++	unsigned hash;
++	unsigned flags;
++
++	rth = dst_alloc(&ipv4_dst_ops);
++	if (!rth)
++		return -ENOBUFS;
++
++	atomic_set(&rth->u.dst.__refcnt, 1);
++	rth->u.dst.flags= DST_HOST;
++	rth->key	= *key;
++	rth->key.iif	= 0; /* output route */
++	rth->rt_dst	= daddr;
++	rth->rt_src	= saddr;
++#ifdef CONFIG_IP_ROUTE_NAT
++	rth->rt_dst_map	= daddr;
++	rth->rt_src_map	= saddr;
++#endif
++
++	/* Set input, output ROUTINES and rt_spec_dst */
++	switch (res->type) {
++		case RTN_LOCAL:
++			/* Use loopback interface for unicast local traffic */
++			fib_res_put(res);
++			res->fi = NULL;
++#ifdef CONFIG_IP_MULTIPLE_TABLES
++			res->r = NULL;
++#endif
++			dev_out = &loopback_dev;
++			flags = RTCF_LOCAL;
++			rth->u.dst.input  = ip_local_deliver;
++			rth->u.dst.output = ip_output;
++			rth->rt_spec_dst  = daddr; /* local side of the path */
++			break;
++		case RTN_UNICAST:
++			flags = 0;
++			rth->u.dst.output = ip_output;
++			rth->rt_spec_dst  = saddr;
++#ifdef CONFIG_IP_ROUTE_MULTIPATH
++			if (res->fi->fib_nhs > 1 && key->oif == 0)
++				/* Set the proper res->nh_sel. */
++				fib_select_multipath(key, res);
++			else
++#endif
++			if (res->prefixlen == 0 && res->type == RTN_UNICAST &&
++					key->oif == 0)
++				fib_select_default(key, res);
++			break;
++		case RTN_BROADCAST:
++			flags = RTCF_BROADCAST|RTCF_LOCAL;
++			rth->u.dst.input  = ip_local_deliver;
++			if (!(dev_out->flags&IFF_LOOPBACK))
++				rth->u.dst.output = ip_mc_output;
++			else
++				rth->u.dst.output = ip_output;
++			rth->rt_spec_dst  = saddr;
++			break;
++		case RTN_MULTICAST:
++			{
++			/* Please note that all ancient band-aids were removed.
++			   I don't try to catch route table deficient for
++			   multicast or 255.255.255.255 routes and "smartly"
++			   replace a gatewayed default by the corresponding
++			   route.  1999/11/06  SAW
++			 */
++			struct in_device *in_dev = in_dev_get(dev_out);
++			rth->u.dst.input  = ip_local_deliver;
++			rth->u.dst.output = ip_output;
++			flags = RTCF_MULTICAST;
++			if (in_dev && ip_check_mc(in_dev, daddr)) {
++				/* Note: I preserve the original behaviour
++				   here.  It means that users after joining and
++				   leaving a multicast group have to flush
++				   the route cache.  I hope they know about it
++				   :-)  1999/11/06  SAW
++				 */
++				flags = RTCF_MULTICAST|RTCF_LOCAL;
++				if (!(dev_out->flags&IFF_LOOPBACK))
++					rth->u.dst.output = ip_mc_output;
++			}
++#ifdef CONFIG_IP_MROUTE
++			if (in_dev && !(dev_out->flags&IFF_LOOPBACK)) {
++				if (IN_DEV_MFORWARD(in_dev) &&
++						!LOCAL_MCAST(daddr))
++				{
++					rth->u.dst.input = ip_mr_input;
++					rth->u.dst.output = ip_mc_output;
++				}
++			}
++#endif
++			if (in_dev)
++				in_dev_put(in_dev);
++			rth->rt_spec_dst  = saddr;
++			}
++			break;
++		case RTN_NAT:
++			dst_free(&rth->u.dst);
++			return -EINVAL;
++		default:
++			printk(KERN_CRIT "bad lookup result type in route output\n");
++			return -EINVAL;
++	}
++
++	/* INTERFACE */
++	/* Store the interface information to allow users to get it via
++	 * [SOL_IP, IP_PKTINFO] conrol message for locally seen packets
++	 * (including broadcast and multicast ones).  --SAW */
++	rth->rt_iif	= key->oif ? : dev_out->ifindex;
++	/* Set output device */
++	rth->u.dst.dev	= dev_out;
++	dev_hold(dev_out);
++
++	/* Set GATEWAY */
++	rth->rt_gateway = daddr;
++	/* if res->fi != NULL set the real gateway */
++	rt_set_nexthop(rth, res, 0);
++
++	rth->rt_flags = flags;
++
++	hash = rt_hash_code(key->dst, key->src^(key->oif<<5), key->tos);
++	return rt_intern_hash(hash, rth, rp);
++}
++
+ /*
+  * Major route resolver routine.
+  */
+-
+ int ip_route_output_slow(struct rtable **rp, u32 daddr, u32 saddr, u32 tos, int oif)
+ {
+ 	struct rt_key key;
+ 	struct fib_result res;
+-	unsigned flags = 0;
+-	struct rtable *rth;
+ 	struct net_device *dev_out = NULL;
+-	unsigned hash;
+-	int free_res = 0;
+ 	int err;
+ 
+-	tos &= IPTOS_TOS_MASK|RTO_ONLINK;
+ 	key.dst = daddr;
+ 	key.src = saddr;
+ 	key.tos = tos&IPTOS_TOS_MASK;
+@@ -1619,252 +1792,100 @@
+ 	res.r = NULL;
+ #endif
+ 
+-	if (saddr) {
+-		if (MULTICAST(saddr) || BADCLASS(saddr) || ZERONET(saddr))
+-			return -EINVAL;
+-
+-		/* It is equivalent to inet_addr_type(saddr) == RTN_LOCAL */
+-		dev_out = ip_dev_find(saddr);
+-		if (dev_out == NULL)
+-			return -EINVAL;
+-
+-		/* I removed check for oif == dev_out->oif here.
+-		   It was wrong by three reasons:
+-		   1. ip_dev_find(saddr) can return wrong iface, if saddr is
+-		      assigned to multiple interfaces.
+-		   2. Moreover, we are allowed to send packets with saddr
+-		      of another iface. --ANK
+-		 */
+-
+-		if (oif == 0 &&
+-			(MULTICAST(daddr) || daddr == 0xFFFFFFFF)) {
+-			/* Special hack: user can direct multicasts
+-			   and limited broadcast via necessary interface
+-			   without fiddling with IP_MULTICAST_IF or IP_PKTINFO.
+-			   This hack is not just for fun, it allows
+-			   vic,vat and friends to work.
+-			   They bind socket to loopback, set ttl to zero
+-			   and expect that it will work.
+-			   From the viewpoint of routing cache they are broken,
+-			   because we are not allowed to build multicast path
+-			   with loopback source addr (look, routing cache
+-			   cannot know, that ttl is zero, so that packet
+-			   will not leave this host and route is valid).
+-			   Luckily, this hack is good workaround.
+-			 */
+-
+-			key.oif = dev_out->ifindex;
+-			goto make_route;
+-		}
+-		if (dev_out)
+-			dev_put(dev_out);
+-		dev_out = NULL;
+-	}
+-	if (oif) {
+-		dev_out = dev_get_by_index(oif);
+-		if (dev_out == NULL)
+-			return -ENODEV;
+-		if (__in_dev_get(dev_out) == NULL) {
+-			dev_put(dev_out);
+-			return -ENODEV;	/* Wrong error code */
+-		}
+-
+-		if (LOCAL_MCAST(daddr) || daddr == 0xFFFFFFFF) {
+-			if (!key.src)
+-				key.src = inet_select_addr(dev_out, 0, RT_SCOPE_LINK);
+-			goto make_route;
+-		}
+-		if (!key.src) {
+-			if (MULTICAST(daddr))
+-				key.src = inet_select_addr(dev_out, 0, key.scope);
+-			else if (!daddr)
+-				key.src = inet_select_addr(dev_out, 0, RT_SCOPE_HOST);
+-		}
+-	}
++	if (!daddr)
++		goto dest_insanity;
+ 
+-	if (!key.dst) {
+-		key.dst = key.src;
+-		if (!key.dst)
+-			key.dst = key.src = htonl(INADDR_LOOPBACK);
+-		if (dev_out)
+-			dev_put(dev_out);
+-		dev_out = &loopback_dev;
++	err = fib_lookup(&key, &res);
++	if (!err) {
++		dev_out = FIB_RES_DEV(res);
+ 		dev_hold(dev_out);
+-		key.oif = loopback_dev.ifindex;
+-		res.type = RTN_LOCAL;
+-		flags |= RTCF_LOCAL;
+-		goto make_route;
+-	}
+-
+-	if (fib_lookup(&key, &res)) {
+-		res.fi = NULL;
+-		if (oif) {
+-			/* Apparently, routing tables are wrong. Assume,
+-			   that the destination is on link.
+-
+-			   WHY? DW.
+-			   Because we are allowed to send to iface
+-			   even if it has NO routes and NO assigned
+-			   addresses. When oif is specified, routing
+-			   tables are looked up with only one purpose:
+-			   to catch if destination is gatewayed, rather than
+-			   direct. Moreover, if MSG_DONTROUTE is set,
+-			   we send packet, ignoring both routing tables
+-			   and ifaddr state. --ANK
+-
+-
+-			   We could make it even if oif is unknown,
+-			   likely IPv6, but we do not.
++		if (saddr) {
++			/* Verify user supplied source address */
++			err = outrt_check_src(saddr, daddr, tos, dev_out);
++		} else {
++			/* Obtain path source from routing table */
++			saddr = FIB_RES_PREFSRC(res);
++			/* We don't verify source address obtained from routing
++			 * table.  It's a task of administrators to keep it
++			 * sane.
+ 			 */
+-
+-			if (key.src == 0)
+-				key.src = inet_select_addr(dev_out, 0, RT_SCOPE_LINK);
+-			res.type = RTN_UNICAST;
+-			goto make_route;
+ 		}
+-		if (dev_out)
+-			dev_put(dev_out);
+-		return -ENETUNREACH;
+-	}
+-	free_res = 1;
+-
+-	if (res.type == RTN_NAT)
+-		goto e_inval;
+-
+-	if (res.type == RTN_LOCAL) {
+-		if (!key.src)
+-			key.src = key.dst;
+-		if (dev_out)
+-			dev_put(dev_out);
+-		dev_out = &loopback_dev;
+-		dev_hold(dev_out);
+-		key.oif = dev_out->ifindex;
+-		if (res.fi)
+-			fib_info_put(res.fi);
+-		res.fi = NULL;
+-		flags |= RTCF_LOCAL;
+-		goto make_route;
+-	}
+-
+-#ifdef CONFIG_IP_ROUTE_MULTIPATH
+-	if (res.fi->fib_nhs > 1 && key.oif == 0)
+-		fib_select_multipath(&key, &res);
+-	else
+-#endif
+-	if (res.prefixlen==0 && res.type == RTN_UNICAST && key.oif == 0)
+-		fib_select_default(&key, &res);
+-
+-	if (!key.src)
+-		key.src = FIB_RES_PREFSRC(res);
+-
+-	if (dev_out)
+-		dev_put(dev_out);
+-	dev_out = FIB_RES_DEV(res);
+-	dev_hold(dev_out);
+-	key.oif = dev_out->ifindex;
+-
+-make_route:
+-	if (LOOPBACK(key.src) && !(dev_out->flags&IFF_LOOPBACK))
+-		goto e_inval;
+-
+-	if (key.dst == 0xFFFFFFFF)
+-		res.type = RTN_BROADCAST;
+-	else if (MULTICAST(key.dst))
+-		res.type = RTN_MULTICAST;
+-	else if (BADCLASS(key.dst) || ZERONET(key.dst))
+-		goto e_inval;
++		if (!err)
++			err = outrt_make_route(rp, &key, daddr, saddr,
++					dev_out, &res);
++		fib_res_put(&res);
++		/* The usual code path ends here */
+ 
+-	if (dev_out->flags&IFF_LOOPBACK)
+-		flags |= RTCF_LOCAL;
++	} else if (err == -ENETUNREACH) {
+ 
+-	if (res.type == RTN_BROADCAST) {
+-		flags |= RTCF_BROADCAST|RTCF_LOCAL;
+-		if (res.fi) {
+-			fib_info_put(res.fi);
+-			res.fi = NULL;
+-		}
+-	} else if (res.type == RTN_MULTICAST) {
+-		flags |= RTCF_MULTICAST|RTCF_LOCAL;
+-		read_lock(&inetdev_lock);
+-		if (!__in_dev_get(dev_out) || !ip_check_mc(__in_dev_get(dev_out), daddr))
+-			flags &= ~RTCF_LOCAL;
+-		read_unlock(&inetdev_lock);
+-		/* If multicast route do not exist use
+-		   default one, but do not gateway in this case.
+-		   Yes, it is hack.
++		/* Just return if the access is prohibited etc.
++		   If the routing table doesn't have both an appropriate route
++		   and a default assume that the destination is on link.  --SAW
++
++		   WHY? DW.
++		   Because we are allowed to send to iface
++		   even if it has NO routes and NO assigned
++		   addresses. When oif is specified, routing
++		   tables are looked up with only one purpose:
++		   to catch if destination is gatewayed, rather than
++		   direct. Moreover, if MSG_DONTROUTE is set,
++		   we send packet, ignoring both routing tables
++		   and ifaddr state. --ANK
++
++		   We could make it even if oif is unknown,
++		   likely IPv6, but we do not.
++
++		   The above statements aren't exactly correct.
++		   Routing tables contain a lot of useful information (like
++		   preferred source, for instance).  But the general idea is
++		   right.  --SAW
+ 		 */
+-		if (res.fi && res.prefixlen < 4) {
+-			fib_info_put(res.fi);
+-			res.fi = NULL;
+-		}
+-	}
+-
+-	rth = dst_alloc(&ipv4_dst_ops);
+-	if (!rth)
+-		goto e_nobufs;
+-
+-	atomic_set(&rth->u.dst.__refcnt, 1);
+-	rth->u.dst.flags= DST_HOST;
+-	rth->key.dst	= daddr;
+-	rth->key.tos	= tos;
+-	rth->key.src	= saddr;
+-	rth->key.iif	= 0;
+-	rth->key.oif	= oif;
+-	rth->rt_dst	= key.dst;
+-	rth->rt_src	= key.src;
+-#ifdef CONFIG_IP_ROUTE_NAT
+-	rth->rt_dst_map	= key.dst;
+-	rth->rt_src_map	= key.src;
+-#endif
+-	rth->rt_iif	= oif ? : dev_out->ifindex;
+-	rth->u.dst.dev	= dev_out;
+-	dev_hold(dev_out);
+-	rth->rt_gateway = key.dst;
+-	rth->rt_spec_dst= key.src;
+-
+-	rth->u.dst.output=ip_output;
+-
+-	if (flags&RTCF_LOCAL) {
+-		rth->u.dst.input = ip_local_deliver;
+-		rth->rt_spec_dst = key.dst;
+-	}
+-	if (flags&(RTCF_BROADCAST|RTCF_MULTICAST)) {
+-		rth->rt_spec_dst = key.src;
+-		if (flags&RTCF_LOCAL && !(dev_out->flags&IFF_LOOPBACK))
+-			rth->u.dst.output = ip_mc_output;
+-#ifdef CONFIG_IP_MROUTE
+-		if (res.type == RTN_MULTICAST) {
+-			struct in_device *in_dev = in_dev_get(dev_out);
+-			if (in_dev) {
+-				if (IN_DEV_MFORWARD(in_dev) && !LOCAL_MCAST(daddr)) {
+-					rth->u.dst.input = ip_mr_input;
+-					rth->u.dst.output = ip_mc_output;
+-				}
+-				in_dev_put(in_dev);
++		if (oif) {
++			err = -ENODEV;
++			dev_out = dev_get_by_index(oif);
++			if (dev_out == NULL)
++				goto out;
++			if (__in_dev_get(dev_out) == NULL)
++				goto out;	/* Wrong error code */
++			if (saddr) {
++				/* Verify user supplied source address */
++				err = outrt_check_src(saddr, daddr, tos, dev_out);
++				if (err)
++					goto out;
++			} else {
++				int scope;
++				if (LOCAL_MCAST(daddr) || daddr == 0xFFFFFFFF)
++					scope = RT_SCOPE_LINK;
++				else if (MULTICAST(daddr))
++					scope = key.scope;
++				else
++					scope = RT_SCOPE_HOST;
++				saddr = inet_select_addr(dev_out, 0, scope);
+ 			}
+-		}
+-#endif
++			res.type = RTN_UNICAST;
++			res.fi = NULL;
++			err = outrt_make_route(rp, &key, daddr, saddr, dev_out,
++					&res);
++		} else
++			err = -ENETUNREACH;
+ 	}
+-
+-	rt_set_nexthop(rth, &res, 0);
+-
+-	rth->rt_flags = flags;
+-
+-	hash = rt_hash_code(daddr, saddr^(oif<<5), tos);
+-	err = rt_intern_hash(hash, rth, rp);
+-done:
+-	if (free_res)
+-		fib_res_put(&res);
++out:
+ 	if (dev_out)
+ 		dev_put(dev_out);
+ 	return err;
+ 
+-e_inval:
+-	err = -EINVAL;
+-	goto done;
+-e_nobufs:
+-	err = -ENOBUFS;
+-	goto done;
++	/* I don't know what reason this hack was for */
++dest_insanity:
++	daddr = saddr;
++	if (!daddr)
++		daddr = saddr = htonl(INADDR_LOOPBACK);
++	dev_out = &loopback_dev;
++	dev_hold(dev_out);
++	key.oif = loopback_dev.ifindex;
++	res.type = RTN_LOCAL;
++	res.fi = NULL;
++	err = outrt_make_route(rp, &key, daddr, saddr, dev_out, &res);
++	goto out;
+ }
+ 
+ int ip_route_output(struct rtable **rp, u32 daddr, u32 saddr, u32 tos, int oif)
