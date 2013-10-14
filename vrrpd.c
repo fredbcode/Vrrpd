@@ -113,8 +113,9 @@ void killvrrpd(int killnu,char *ifname)
 					if (monitor){
 						f = fopen(statedown,"w");
                         			fprintf(f, "%d", mypid );
-						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: pid: %d :Remove global state down:%s Statedown:%s",vsrv->vrid, ifname, mypid,globalstatedown, statedown);
-	             	         		fclose(f);
+						/* removed: Ugly message just for debug */
+						// vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: pid: %d : create global state down:%s Statedown:%s",vsrv->vrid, ifname, mypid,globalstatedown, statedown);
+			 			fclose(f);
 					}
 					strcpy(globalstatedown,statedown);
 					/* Debug 
