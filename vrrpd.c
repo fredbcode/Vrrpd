@@ -909,7 +909,7 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 	int	c;
 
 	while( 1 ){
-		c = getopt( argc, argv, "f:M:Vhnsi:v:a:p:d:D:U:I:O:" );
+		c = getopt( argc, argv, "f:M:Vhnsi:v:a:p:ttin:ttou:d:D:U:I:O:" );
 		/* if the parsing is completed, exit */
 		if( c == EOF )	break;
 		switch( c ){
@@ -961,6 +961,22 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 			vsrv->priority = atoi( optarg );
 			if( VRRP_IS_BAD_PRIORITY(vsrv->priority) ){
 				fprintf( stderr, "bad priority!\n" );
+				goto err;
+			}
+			break;
+				
+		case 'ttin':
+			vsrv->ttin_priority = atoi( optarg );
+			if( VRRP_IS_BAD_PRIORITY(vsrv->ttin_priority) ){
+				fprintf( stderr, "bad ttin priority!\n" );
+				goto err;
+			}
+			break;
+				
+		case 'ttou':
+			vsrv->ttou_priority = atoi( optarg );
+			if( VRRP_IS_BAD_PRIORITY(vsrv->ttou_priority) ){
+				fprintf( stderr, "bad ttou priority!\n" );
 				goto err;
 			}
 			break;
@@ -1050,6 +1066,9 @@ static void init_virtual_srv( vrrp_rt *vsrv )
 	vsrv->priority	= VRRP_PRIO_DFL;
 	vsrv->adver_int	= VRRP_ADVER_DFL*VRRP_TIMER_HZ;
 	vsrv->preempt	= VRRP_PREEMPT_DFL;
+
+	vsrv->ttin_priority = 0;
+	vsrv->ttou_priority = 0;
 }
 
 /****************************************************************
