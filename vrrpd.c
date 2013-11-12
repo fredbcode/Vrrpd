@@ -790,7 +790,7 @@ static int vrrp_send_adv( vrrp_rt *vsrv, int prio )
 static void usage( void )
 {
 	fprintf( stderr, "vrrpd version %s\n", VRRPD_VERSION );
-	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-ttin prio] [-ttou prio] [-nh] ipaddr\n" );
+	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-z prio] [-x prio] [-nh] ipaddr\n" );
 	fprintf( stderr, "  -h       : display this short inlined help\n" );
 	fprintf( stderr, "  -n       : Dont handle the virtual mac address\n" );
 	fprintf( stderr, "  -i ifname: the interface name to run on\n" );
