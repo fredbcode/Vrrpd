@@ -790,7 +790,7 @@ static int vrrp_send_adv( vrrp_rt *vsrv, int prio )
 static void usage( void )
 {
 	fprintf( stderr, "vrrpd version %s\n", VRRPD_VERSION );
-	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-nh] ipaddr\n" );
+	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-ttin prio] [-ttou prio] [-nh] ipaddr\n" );
 	fprintf( stderr, "  -h       : display this short inlined help\n" );
 	fprintf( stderr, "  -n       : Dont handle the virtual mac address\n" );
 	fprintf( stderr, "  -i ifname: the interface name to run on\n" );
@@ -802,6 +802,8 @@ static void usage( void )
 							, VRRP_PRIO_DFL );
 	fprintf( stderr, "  -d delay : Set the advertisement interval (in sec) (dfl: %d)\n"
 							, VRRP_ADVER_DFL );
+	fprintf( stderr, "  -ttin prio  : Set the priority after SIGTTIN (not decrement as default)\n");
+	fprintf( stderr, "  -ttou prio  : Set the priority after SIGTTOU (not increment as default)\n");
 	fprintf( stderr, "  ipaddr/length   : Should be at the end - IP address(es) of the virtual server and the length of the subnet mask - \n" );
 	fprintf( stderr, "  -V        : display version\n\n" );
         fprintf( stderr, " ---------------------------------------------------------------------------\n");
