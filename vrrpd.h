@@ -97,6 +97,11 @@ typedef struct {	/* parameters per virtual router -- rfc2338.6.1.2 */
 	uint32_t	adver_timer;
 
 	vrrp_if	vif;
+
+
+	int	ttin_priority;	/* priority value after SIGTTIN */
+	int	ttou_priority;	/* priority value after SIGTTOU */
+
 } vrrp_rt;
 
 /* VRRP state machine -- rfc2338.6.4 */

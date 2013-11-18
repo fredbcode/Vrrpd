@@ -790,7 +790,7 @@ static int vrrp_send_adv( vrrp_rt *vsrv, int prio )
 static void usage( void )
 {
 	fprintf( stderr, "vrrpd version %s\n", VRRPD_VERSION );
-	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-nh] ipaddr\n" );
+	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-z prio] [-x prio] [-nh] ipaddr\n" );
 	fprintf( stderr, "  -h       : display this short inlined help\n" );
 	fprintf( stderr, "  -n       : Dont handle the virtual mac address\n" );
 	fprintf( stderr, "  -i ifname: the interface name to run on\n" );
@@ -802,6 +802,8 @@ static void usage( void )
 							, VRRP_PRIO_DFL );
 	fprintf( stderr, "  -d delay : Set the advertisement interval (in sec) (dfl: %d)\n"
 							, VRRP_ADVER_DFL );
+	fprintf( stderr, "  -z prio  : Set the priority after SIGTTIN (not decrement as default)\n");
+	fprintf( stderr, "  -x prio  : Set the priority after SIGTTOU (not increment as default)\n");
 	fprintf( stderr, "  ipaddr/length   : Should be at the end - IP address(es) of the virtual server and the length of the subnet mask - \n" );
 	fprintf( stderr, "  -V        : display version\n\n" );
         fprintf( stderr, " ---------------------------------------------------------------------------\n");
@@ -907,7 +909,7 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 	int	c;
 
 	while( 1 ){
-		c = getopt( argc, argv, "f:M:Vhnsi:v:a:p:d:D:U:I:O:" );
+		c = getopt( argc, argv, "f:M:Vhnsi:v:a:p:z:x:d:D:U:I:O:" );
 		/* if the parsing is completed, exit */
 		if( c == EOF )	break;
 		switch( c ){
@@ -959,6 +961,22 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 			vsrv->priority = atoi( optarg );
 			if( VRRP_IS_BAD_PRIORITY(vsrv->priority) ){
 				fprintf( stderr, "bad priority!\n" );
+				goto err;
+			}
+			break;
+				
+		case 'z':
+			vsrv->ttin_priority = atoi( optarg );
+			if( VRRP_IS_BAD_PRIORITY(vsrv->ttin_priority) ){
+				fprintf( stderr, "bad ttin priority!\n" );
+				goto err;
+			}
+			break;
+				
+		case 'x':
+			vsrv->ttou_priority = atoi( optarg );
+			if( VRRP_IS_BAD_PRIORITY(vsrv->ttou_priority) ){
+				fprintf( stderr, "bad ttou priority!\n" );
 				goto err;
 			}
 			break;
@@ -1048,6 +1066,9 @@ static void init_virtual_srv( vrrp_rt *vsrv )
 	vsrv->priority	= VRRP_PRIO_DFL;
 	vsrv->adver_int	= VRRP_ADVER_DFL*VRRP_TIMER_HZ;
 	vsrv->preempt	= VRRP_PREEMPT_DFL;
+
+	vsrv->ttin_priority = 0;
+	vsrv->ttou_priority = 0;
 }
 
 /****************************************************************
@@ -1627,16 +1648,32 @@ static void signal_user( int nosig )
         }
 
         if( nosig == SIGTTIN ){
-		if ( vsrv->priority > 10 ){
-			vsrv->priority = vsrv->priority - 10 ;
-      			vrrpd_log(LOG_WARNING, "vrrpd: new priority %d", vsrv->priority);} 
+                if ( vsrv->ttin_priority )
+                {
+		    vsrv->priority = vsrv->ttin_priority ;
+                }
+                else
+                {
+		        if ( vsrv->priority > 10 ){
+			    vsrv->priority = vsrv->priority - 10 ;
+			} 
+                }
+		vrrpd_log(LOG_WARNING, "vrrpd: new priority %d", vsrv->priority);
         }
 
         if( nosig == SIGTTOU ){
-		if ( vsrv->priority < 240 ){
-			vsrv->priority = vsrv->priority + 10 ;
-			vrrpd_log(LOG_WARNING, "vrrpd: new priority %d", vsrv->priority);
-		}
+                if ( vsrv->ttou_priority )
+                {
+		    vsrv->priority = vsrv->ttou_priority ;
+                }
+                else
+                {
+
+		    if ( vsrv->priority < 240 ){
+			    vsrv->priority = vsrv->priority + 10 ;
+		    }
+		};
+		vrrpd_log(LOG_WARNING, "vrrpd: new priority %d", vsrv->priority);
         }
 
 	/* rearm the signal */
