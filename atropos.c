@@ -340,8 +340,10 @@ main(int argc, char **argv)
 		fprintf(stdout,"Atropos %s frederic Bourgeois http://numsys.eu\n", version1);
 		fprintf(stdout,"\n");
 		fprintf(stdout,"atropos --backup 		Be backup (caution: Don't use with priority !)\n");
-		fprintf(stdout,"atropos --reduce 		Reduce priority dynamically priority -10 \n");
+		fprintf(stdout,"atropos --reduce 		Reduce priority dynamically priority -10\n");
+		fprintf(stdout,"				If vrrpd run with -z : Set the priority after SIGTTIN (not decrement as default)\n");
 		fprintf(stdout,"atropos --increase 		Increase priority dynamically +10 \n");
+		fprintf(stdout,"				If vrrpd run with -x : Set the priority after SIGTTOU (not increment as default)\n");
 		fprintf(stdout,"atropos --help			This Page\n");
 		fprintf(stdout,"atropos --state			Status \n");
 		fprintf(stdout,"atropos --version		version \n");
