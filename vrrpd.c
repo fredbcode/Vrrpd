@@ -1606,7 +1606,7 @@ static void writestate()
 		fprintf(f, "%d", vsrv->state);
 		fclose(f);
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information process : %d", mypid);
-		vrrpd_log(LOG_WARNING, "vrrpd: %s", VRRPD_VERSION);
+		vrrpd_log(LOG_WARNING, "vrrpd: version: %s", VRRPD_VERSION);
 		vrrpd_log(LOG_WARNING, "vrrpd: priority %d", vsrv->priority);
 		if (vsrv->no_vmac == 0)
 			vrrpd_log(LOG_WARNING, "vrrpd: vmac on");
