@@ -5,6 +5,8 @@ Advanced Vrrpd
 
 That version has many improvements like monitoring other vrrpd processes and executing a command when changing back and forth from master to backup You can also use atropos program for view or change global state Tested on Linux only http://numsys.eu
 
+Debian package http://numsys.eu/Vrrpd/ (in tarball)
+
 * VRRPD - when an interface change his state to backup, or master, them can have associated up/down scripts
 * VRRPD - Ethtool supervision (link up/down)
 * VRRPD - multi-interfaces - The Master communicate his state to all another process. If for some reason one process be backup, link down for example, all the system change for backup state.
