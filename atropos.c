@@ -3,6 +3,8 @@
 */
 
 
+#include <sys/time.h>
+#include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -17,12 +19,11 @@
 #include <sys/ioctl.h>
 #include <net/if.h>
 #include <sys/dir.h>
-#ifdef use_linux_libc5
-#endif
-
 /* local include */
 #include "vrrpd.h"
 
+#ifdef use_linux_libc5
+#endif
 
 typedef u_int32_t u32;
 typedef u_int16_t u16;
@@ -58,7 +59,6 @@ DIR *currentDir;
 struct dirent *fichier;
 
 const char shortopts[] = "aA:bB:fF:Mn:sS:hH:p:rRsvVw?";
-
 
 struct option longopts[] = {
  /* { name  has_arg  *flag  val } */
@@ -190,7 +190,7 @@ static void signal_end( int nosig )
 }
 
 
-main(int argc, char **argv)
+int main(int argc, char **argv)
 {
 	signal( SIGINT, signal_end );
 	int c, errflag = 0;
@@ -207,12 +207,12 @@ main(int argc, char **argv)
 
 	if (state) {
 		fonctinfo();
-		return;	
+		return 0;	
 		};
 
 	if (version) {
 		fprintf(stdout,"Atropos %s\n", version1);
-		return;	
+		return 0;	
 		};
 
 
@@ -241,7 +241,7 @@ main(int argc, char **argv)
 		}
 
 		fprintf(stdout,"DONE\n");	
-                return;
+                return 0;
         };
 
         if (increase) {
@@ -269,7 +269,7 @@ main(int argc, char **argv)
                 }
 
                 fprintf(stdout,"DONE\n");
-                return;
+                return 0;
         };
 
 
@@ -332,7 +332,7 @@ main(int argc, char **argv)
 
 		fprintf(stdout,"\n");	
 		fprintf(stdout,"DONE\n");	
-		return;
+		return 0;
 	}
 
 	else {
@@ -348,6 +348,7 @@ main(int argc, char **argv)
 		fprintf(stdout,"atropos --state			Status \n");
 		fprintf(stdout,"atropos --version		version \n");
 		fprintf(stdout,"It requires to be run as root \n");	
+		return 0;
 		}
 
 }

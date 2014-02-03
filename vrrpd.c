@@ -546,7 +546,8 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 				  -sizeof(vif->auth_data);
 		if( memcmp( pw, vif->auth_data, sizeof(vif->auth_data)) ){
 			if( vsrv->vrid == hd->vrid ){
-				VRRP_LOG(("receive an invalid passwd! \n"));
+				vrrpd_log(LOG_WARNING,"Receive an invalid passwd! \n");
+				vrrpd_log(LOG_WARNING,"Passwd: %s Passwd: %s - Vid: %d Vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
 				return 2;
 			}
 		}
@@ -722,9 +723,9 @@ void hello_send_pkt(vrrp_rt *vsrv, int addr)
 	vrrpd_log(LOG_WARNING, "VRRP ID %d: sending magic packet \n",vsrv->vrid);
 	if (-1 == bind(SocketFD,(struct sockaddr *)&stSockAddr, sizeof(stSockAddr)))
 	{
-   	perror("error bind failed");
-    	close(SocketFD);
-	return;
+   		perror("error bind failed");
+    		close(SocketFD);
+		return;
   	} 
     	stSockAddr.sin_family = AF_INET;
     	stSockAddr.sin_port = htons(1100);
@@ -1286,6 +1287,8 @@ char *ipaddr_to_str(uint32_t ipaddr)
 {
 	static char temp_ipaddr[32];
 	snprintf(temp_ipaddr, 32, "%d.%d.%d.%d", 
+
+
 			(unsigned char)(ipaddr & 0xff),
 			(unsigned char)((ipaddr >> 8) & 0xff),
 			(unsigned char)((ipaddr >> 16) & 0xff),

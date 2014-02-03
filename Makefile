@@ -3,6 +3,7 @@ PROJECT=vrrpd
 ALL_EXE=vrrpd atropos
 
 ATROPOS_OBJS = atropos.o
+
 VRRPD_OBJS = vrrpd.o libnetlink.o ipaddr.o
 
 MAIN_OPT=
@@ -21,17 +22,17 @@ CFLAGS= $(COMMON_CFLAGS) -Wall
 
 all: $(ALL_EXE)
 
-atropos: $(ATROPOS_OBJS)
-	$(CC) $(PROF_OPT) -o $@ $^
-
 vrrpd : $(VRRPD_OBJS)
 	$(CC) $(PROF_OPT) -o $@ $^ $(LINKLIB)
+
+atropos:$(ATROPOS_OBJS)
+	$(CC) $(PROF_OPT) -o $@ $^
 
 vrrpd.o: vrrpd.h
 libnetlink.o: libnetlink.h
 
 dist:
-	(make clean; rm -fr .protect/; cd ..; tar cvzf vrrpd-lastest.tgz vrrpd)
+	(make clean; rm -fr .protect/; cd ..; tar cvzf vrrpd-lastest.tgz vrrpd atropos)
 
 ##############################################
 #  beyond this points only mangement target. #
@@ -39,6 +40,7 @@ dist:
 clean :
 	@echo Begin to clean
 	$(RM) *.[ao] *~ core
+	$(RM) $(ALL_EXE) 
 	@echo Clean is completed
 
 mrproper : clean
