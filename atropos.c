@@ -35,7 +35,7 @@ typedef u_int8_t u8;
 #define SIOCGPARAMS (SIOCDEVPRIVATE+3) 		/* Read operational parameters. */
 #define SIOCSPARAMS (SIOCDEVPRIVATE+4) 		/* Set operational parameters. */
 #endif
-char version1[10] = "0.60";
+char version1[10] = "0.70";
 char buff[80];
 int ix =9;
 char pidend[6] = ".pid";

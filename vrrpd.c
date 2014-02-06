@@ -558,22 +558,23 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 							, hd->auth_type));
 		return 1;
 	}
+
+	/* MUST verify that the VRID is valid on the receiving interface */
+	if( vsrv->vrid != hd->vrid ){
+		return 1;
+	}
+
 	/* check the authentication if it is a passwd */
 	if( hd->auth_type == VRRP_AUTH_PASS ){
 		char	*pw	= (char *)ip + ntohs(ip->tot_len)
 				  -sizeof(vif->auth_data);
 		if( memcmp( pw, vif->auth_data, sizeof(vif->auth_data)) ){
 			if( vsrv->vrid == hd->vrid ){
-				vrrpd_log(LOG_WARNING,"Receive an invalid passwd! \n");
+				vrrpd_log(LOG_WARNING,"VRRPD group: receive an invalid passwd ! \n");
 				vrrpd_log(LOG_WARNING,"Passwd: %s Passwd: %s - Vid: %d Vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
 				return 2;
 			}
 		}
-	}
-
-	/* MUST verify that the VRID is valid on the receiving interface */
-	if( vsrv->vrid != hd->vrid ){
-		return 1;
 	}
 
 	/* MAY verify that the IP address(es) associated with the VRID are

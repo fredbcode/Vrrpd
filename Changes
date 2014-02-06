@@ -2,10 +2,11 @@
 
 Two optional command line arguments (x,z) with value of priorities.
 If this arguments exists, calling signal SIGTTIN and SIGTTOU instead of increment/decrement 
-priority of running process - Ivan Zhiltsov -
+priority of running process - By Ivan Zhiltsov -
 
-Fixed some minor bugs 
+Fix: some minor bugs 
 Cleaned source code 
+Rewrite killvrrpd engine 
 
 10/09/2013 Vrrpd 1.9
 
