@@ -1507,8 +1507,6 @@ if( vsrv->state != VRRP_STATE_BACK ){
 			return;
 		}
 		if( !len )	return;
-        vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: incoming info (priority = %d, ip = %s) local info (priority = %d, ip = %s)", vsrv->vrid, vsrv->vif.ifname,
-				hd->priority, ipaddr_to_str(iph->saddr) ,vsrv->priority, ipaddr_to_str(ntohl(vsrv->vif.ipaddr)));
 		if( hd->priority == 0 ){
 			vrrp_send_adv( vsrv, vsrv->priority );
 			VRRP_TIMER_SET(vsrv->adver_timer,vsrv->adver_int);
@@ -1747,9 +1745,6 @@ int main( int argc, char *argv[] )
             /* Log any failures here */
             exit(EXIT_FAILURE);
     }
-    
-    
-    
 			
 	//open log missing *AA*
 	openlog ("vrrpd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
