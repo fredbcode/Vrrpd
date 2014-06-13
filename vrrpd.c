@@ -20,6 +20,7 @@ REMARK      :
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -465,8 +466,8 @@ static int ipaddr_ops( vrrp_rt *vsrv, int addF )
 {
 	int	i, err	= 0;
 	int	ifidx	= ifname_to_idx( vsrv->vif.ifname );
-	struct in_addr in;
-
+/*	struct in_addr in; 
+*/
 	for( i = 0; i < vsrv->naddr; i++ ){
 		vip_addr	*vadd = &vsrv->vaddr[i];
 		if( !addF && !vadd->deletable ) 	continue;
@@ -474,8 +475,9 @@ static int ipaddr_ops( vrrp_rt *vsrv, int addF )
  		if( ipaddr_op(ifidx , vadd->addr, vadd->length, addF)){
 			err = 1;
 			vadd->deletable = 0;
+/*
 			in.s_addr = htonl(vadd->addr);
-/*			VRRP_LOG(("cant %s the address %s to %s\n"
+			VRRP_LOG(("cant %s the address %s to %s\n"
 						, addF ? "set" : "remove"
 						, inet_ntoa(in)
 						, vsrv->vif.ifname));
