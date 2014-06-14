@@ -20,6 +20,7 @@ REMARK      :
 #include <signal.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/wait.h>
@@ -465,8 +466,8 @@ static int ipaddr_ops( vrrp_rt *vsrv, int addF )
 {
 	int	i, err	= 0;
 	int	ifidx	= ifname_to_idx( vsrv->vif.ifname );
-	struct in_addr in;
-
+/*	struct in_addr in; 
+*/
 	for( i = 0; i < vsrv->naddr; i++ ){
 		vip_addr	*vadd = &vsrv->vaddr[i];
 		if( !addF && !vadd->deletable ) 	continue;
@@ -474,8 +475,9 @@ static int ipaddr_ops( vrrp_rt *vsrv, int addF )
  		if( ipaddr_op(ifidx , vadd->addr, vadd->length, addF)){
 			err = 1;
 			vadd->deletable = 0;
+/*
 			in.s_addr = htonl(vadd->addr);
-/*			VRRP_LOG(("cant %s the address %s to %s\n"
+			VRRP_LOG(("cant %s the address %s to %s\n"
 						, addF ? "set" : "remove"
 						, inet_ntoa(in)
 						, vsrv->vif.ifname));
@@ -1507,7 +1509,6 @@ if( vsrv->state != VRRP_STATE_BACK ){
 			return;
 		}
 		if( !len )	return;
-
 		if( hd->priority == 0 ){
 			vrrp_send_adv( vsrv, vsrv->priority );
 			VRRP_TIMER_SET(vsrv->adver_timer,vsrv->adver_int);
@@ -1637,6 +1638,13 @@ static void writestate()
 			vrrpd_log(LOG_WARNING, "vrrpd: vmac on");
 		if (vsrv->no_vmac == 1)
 			vrrpd_log(LOG_WARNING, "vrrpd: vmac off");
+		if (vsrv->preempt == 1)
+			vrrpd_log(LOG_WARNING, "vrrpd: preempt on");
+		else if(vsrv->preempt == 0)
+		    vrrpd_log(LOG_WARNING, "vrrpd: preempt off");
+		else
+		    vrrpd_log(LOG_WARNING, "vrrpd: preempt %d",vsrv->preempt);
+		    
 		if (vsrv->state == 3)
                         vrrpd_log(LOG_WARNING, "vrrpd: state MASTER since %s", timenowstring);
 		else 
@@ -1713,7 +1721,7 @@ static void signal_user( int nosig )
 int main( int argc, char *argv[] )
 {
 	vrrp_rt	*vsrv = &glob_vsrv;
-
+    pid_t sid;
 #if 1	/* for debug only */
 	setbuf(stdout,NULL);
 	setbuf(stderr,NULL);
@@ -1721,7 +1729,25 @@ int main( int argc, char *argv[] )
 	
 	// First we fork and kill our parent
 	if (fork())
+	{
+	       /* Close out the standard file descriptors */
+        close(STDIN_FILENO);
+        close(STDOUT_FILENO);
+        close(STDERR_FILENO);
 		exit(0);
+	}
+	/* Change the file mode mask */
+    umask(0);       
+    
+    /* Open any logs here */
+    
+    /* Create a new SID for the child process */
+    sid = setsid();
+    if (sid < 0) {
+            /* Log any failures here */
+            exit(EXIT_FAILURE);
+    }
+			
 	//open log missing *AA*
 	openlog ("vrrpd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	vrrpd_log(LOG_WARNING, "vrrpd version %s starting...\n", VRRPD_VERSION);
@@ -1755,6 +1781,11 @@ int main( int argc, char *argv[] )
 		fprintf(stderr, "try '%s -h' to read the help\n", argv[0]);
 		return -1;
 	}
+    /* Close out the standard file descriptors */
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
+    close(STDERR_FILENO);
+
 	if( open_sock( vsrv ) ){
 		return -1;
 	}
