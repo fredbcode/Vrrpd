@@ -26,7 +26,9 @@ REMARK      :
 #include <sys/wait.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <stddef.h>
 #include <time.h>
+#include <sys/sysinfo.h>
 #include <sys/errno.h>
 #include <net/if.h>
 #include <net/if_arp.h>
@@ -1130,7 +1132,7 @@ static int vrrp_read( vrrp_rt *vsrv, char *buf, int buflen )
 	struct timeval	timeout;
 	uint32_t	next	= 0xFFFFFFFF;
 	int		len	= 0;
-	
+
 	/* cpu the next timer */
 	if( VRRP_TIMER_IS_RUNNING( vsrv->adver_timer ) ){
 		int32_t	delta = VRRP_TIMER_DELTA(vsrv->adver_timer);
@@ -1151,6 +1153,7 @@ static int vrrp_read( vrrp_rt *vsrv, char *buf, int buflen )
 //printf( "val %u,%u %u\n", timeout.tv_sec, timeout.tv_usec, next );
 	if( select( vsrv->sockfd + 1, &readfds, NULL, NULL, &timeout ) > 0 ){
 		len = read( vsrv->sockfd, buf, buflen );
+
 //		printf("packet received (%d bytes)\n",len);
 		if( vrrp_in_chk( vsrv, (struct iphdr *)buf ) ){
 //			printf("bogus packet!\n");
