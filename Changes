@@ -1,3 +1,7 @@
+10/09/2014 vrrpd 1.11
+
+Fix: The change in time cause the backup vrrp daemon to send vrrp advertisements - By csavoie
+
 03/02/2014 Vrrpd 1.10
 
 Two optional command line arguments (x,z) with value of priorities.
