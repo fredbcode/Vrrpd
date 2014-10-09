@@ -131,9 +131,11 @@ typedef struct {	/* parameters per virtual router -- rfc2338.6.1.2 */
 #define VRRP_TIMER_HZ			1000000
 uint32_t VRRP_TIMER_CLK( void )
 {
-	struct timeval tv;
-        gettimeofday(&tv, NULL );
-        return tv.tv_sec*VRRP_TIMER_HZ+tv.tv_usec;
+	struct timespec tv;
+	uint32_t usecs = 0;
+    clock_gettime(CLOCK_MONOTONIC,&tv );
+    usecs = (uint32_t)(tv.tv_nsec/1000);
+    return tv.tv_sec*VRRP_TIMER_HZ+usecs;
 }
               
 
