@@ -18,17 +18,17 @@ COMMON_CFLAGS= $(MAIN_OPT) $(INCLUDEOPT) $(PROF_OPT) $(DBG_OPT) $(MACHINEOPT)
 
 # set to compile with GCC
 CC=gcc
-CFLAGS= $(COMMON_CFLAGS) -Wall
+CFLAGS= $(COMMON_CFLAGS) -Wall 
 
 all: $(ALL_EXE)
 
 vrrpd : $(VRRPD_OBJS)
-	$(CC) $(PROF_OPT) -o $@ $^ $(LINKLIB)
+	$(CC) $(PROF_OPT) -o $@ $^ -lrt $(LINKLIB)
 
 atropos:$(ATROPOS_OBJS)
-	$(CC) $(PROF_OPT) -o $@ $^
+	$(CC) $(PROF_OPT) -o $@ -lrt $^
 
-vrrpd.o: vrrpd.h
+vrrpd.o: vrrpd.h 
 libnetlink.o: libnetlink.h
 
 dist:
