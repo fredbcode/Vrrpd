@@ -844,7 +844,7 @@ static void usage( void )
         fprintf( stderr, " Magic packet erase arp table (for those who work without vmac - send fake packet to port 1100 -)\n");
         fprintf( stderr, "  -I ipvip	:	Choose VIP source to send magic packet - Erase vip from mac table -\n");
         fprintf( stderr, "  -O ipdst	:	Gateway destination\n");
-        fprintf( stderr, "Example vrrpd -S 10.1.1.1 -O 10.1.1.254\n");
+        fprintf( stderr, "  Example: vrrpd -i eth0 -v 11 10.1.1.1 -S 10.1.1.1 -O 10.1.1.254\n");
         fprintf( stderr, "\n");
 }
 
