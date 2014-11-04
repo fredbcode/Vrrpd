@@ -17,3 +17,4 @@ Tested on Linux only http://numsys.eu
 With vmac disable Spanning Tree Protocol (STP) on the switch ports, where VRRP is running !
 On VM vmac should disabled (-n)
 
+The Virtual Router Redundancy Protocol (VRRP) is a computer networking protocol that provides for automatic assignment of available Internet Protocol (IP).
