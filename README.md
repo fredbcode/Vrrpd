@@ -15,6 +15,6 @@ Tested on Linux only http://numsys.eu
 * Atropos client - You can use atropos for change or/and know the master's state (for example in supervision script)
 
 With vmac disable Spanning Tree Protocol (STP) on the switch ports, where VRRP is running !
-On VM vmac should disabled (-n)
+On VM vmac should be disabled (-n)
 
 The Virtual Router Redundancy Protocol (VRRP) is a computer networking protocol that provides for automatic assignment of available Internet Protocol (IP).
