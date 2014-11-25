@@ -1,6 +1,7 @@
 10/09/2014 vrrpd 1.11
 
-Fix: The change in time cause the backup vrrp daemon to send vrrp advertisements - By csavoie
+Fix: Fix: The change in time cause the backup vrrp daemon to send vrrp advertisements - By charles savoie
+Fix: Fix: vrrpd cannot be invoked from python script - By charles savoie 
 
 03/02/2014 Vrrpd 1.10
 
