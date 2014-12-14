@@ -39,7 +39,7 @@ For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/
 * v = VID 51 
 * M = M 2 monitoring two process on each machine (9 max), and eth link up/down supervision 
 * U = Optional script when VRRPD become master
-* D = Optional Script when VRRPD become backup
+* D = Optional script when VRRPD become backup
 
 About U and D, for example you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
 
