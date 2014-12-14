@@ -18,3 +18,25 @@ With vmac disable Spanning Tree Protocol (STP) on the switch ports, where VRRP i
 On VM vmac should be disabled (-n)
 
 The Virtual Router Redundancy Protocol (VRRP) is a computer networking protocol that provides for automatic assignment of available Internet Protocol (IP).
+
+Basic configuration:
+
+Server 1:
+vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+
+Server 2:
+vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+
+For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/master/scripts
+
+i = eth to listen and VIP network adress
+v = VID 51 
+M = M 2 monitoring two process on each machine, and link up/down supervision 
+U = Optional script when VRRPD become master *
+D = Optional Script when VRRPD become backup
+
+* For example you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
+
+The virtual MAC address is automaticaly generated
