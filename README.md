@@ -22,11 +22,15 @@ The Virtual Router Redundancy Protocol (VRRP) is a computer networking protocol 
 Basic configuration:
 
 Server 1:
+
 vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+
 vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
 
 Server 2:
+
 vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
+
 vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
 
 For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/master/scripts
