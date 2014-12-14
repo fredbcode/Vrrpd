@@ -35,12 +35,19 @@ vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/D
 
 For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/master/scripts
 
-* i = eth to listen and VIP network adress
+* i = eth to listen and VIP network adress - 10.16.1.200 is the VIP shared on eth0 -
 * v = VID 51 
 * M = M 2 monitoring two process on each machine (9 max), and eth link up/down supervision 
 * U = Optional script when VRRPD become master
 * D = Optional script when VRRPD become backup
 
 About U and D, for example you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
+You can put whatever you like.
+
+In MASTER.sh
+ifconfig eth0:0 192.168.14.2 netmask 255.255.255.0 up
+
+In DOWN.sh
+ifconfig eth1:0 down
 
 The virtual MAC address is automaticaly generated
