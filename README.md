@@ -51,6 +51,6 @@ In DOWN.sh
 
 ifconfig eth0:0 down
 
-You can put whatever you like.
+Of course, you can put whatever you like.
 
 The virtual MAC address is automaticaly generated
