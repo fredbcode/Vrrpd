@@ -43,7 +43,7 @@ For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/
 * U = Optional script when VRRPD become master
 * D = Optional script when VRRPD become backup
 
-About U and D, for example you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
+**About U and D :** For example you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
 
 In MASTER.sh
 
@@ -56,3 +56,53 @@ ifconfig eth0:0 down
 Of course, you can put whatever you like.
 
 The virtual MAC address is automaticaly generated
+
+**vrrpd usage :**
+```
+vrrpd version Advanced Vrrpd 1.11
+Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-z prio] [-x prio] [-nh] ipaddr
+  -h       : display this short inlined help
+  -n       : Dont handle the virtual mac address
+  -i ifname: the interface name to run on
+  -v vrid  : the id of the virtual server [1-255]
+  -s       : Switch the preemption mode (Enabled by default)
+  -a auth  : auth=(none|pw/hexkey|ah/hexkey) hexkey=0x[0-9a-fA-F]+
+  -p prio  : Set the priority of this host in the virtual server (dfl: 100)
+  -d delay : Set the advertisement interval (in sec) (dfl: 1)
+  -z prio  : Set the priority after SIGTTIN (not decrement as default)
+  -x prio  : Set the priority after SIGTTOU (not increment as default)
+  ipaddr/length   : Should be at the end - IP address(es) of the virtual server and the length of the subnet mask - 
+  -V        : display version
+
+ ---------------------------------------------------------------------------
+ Frederic Bourgeois http://numsys.eu
+ https://github.com/fredbcode/
+ Based on (http://sourceforge.net/projects/vrrpd/)
+
+ Supplementary Options: 
+  -U	:	(-U <file>): run <file> to become a master)
+  -D	:	(-D <file>): run <file> to become a backup)
+  -M	:	(-M x) Monitoring process and Network (Max 9)
+  If one vrrpd become backup (or died), all other process go to Backup state
+  If one network interface failed (ifconfig Down, link) all other process go to Backup state
+  Not supported (in part or whole) on all ethernet drivers
+ POWER USERS --------------------------------------------------------------
+ Magic packet erase arp table (for those who work without vmac - send fake packet to port 1100 -)
+  -I ipvip	:	Choose VIP source to send magic packet - Erase vip from mac table -
+  -O ipdst	:	Gateway destination
+Example vrrpd -S 10.1.1.1 -O 10.1.1.254
+```
+**Atropos usage:**
+```
+Atropos 0.70 frederic Bourgeois http://numsys.eu
+
+atropos --backup 		Be backup (caution: Don't use with priority !)
+atropos --reduce 		Reduce priority dynamically priority -10
+				If vrrpd run with -z : Set the priority after SIGTTIN (not decrement as default)
+atropos --increase 		Increase priority dynamically +10 
+				If vrrpd run with -x : Set the priority after SIGTTOU (not increment as default)
+atropos --help			This Page
+atropos --state			Status 
+atropos --version		version 
+It requires to be run as root 
+```
