@@ -1639,7 +1639,7 @@ static void writestate()
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Master: %s", upscript);
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Backup: %s", scriptdown);
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information priority %d", vsrv->priority);
-		if( hd->auth_type == VRRP_AUTH_PASS ) {
+		if( VRRP_AUTH_PASS ) {
 			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password on");
 		} else {
 			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password off");
