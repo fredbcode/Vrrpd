@@ -1635,30 +1635,37 @@ static void writestate()
 		fprintf(f, "%d", vsrv->state);
 		fclose(f);
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information process : %d", mypid);
-		vrrpd_log(LOG_WARNING, "vrrpd: version: %s", VRRPD_VERSION);
-		vrrpd_log(LOG_WARNING, "vrrpd: priority %d", vsrv->priority);
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information version: %s", VRRPD_VERSION);
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Master: %s", upscript);
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Backup: %s", scriptdown);
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information priority %d", vsrv->priority);
+		if( hd->auth_type == VRRP_AUTH_PASS ) {
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password on");
+		} else {
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password off");
+		}
 		if (vsrv->no_vmac == 0)
-			vrrpd_log(LOG_WARNING, "vrrpd: vmac on");
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information vmac on");
 		if (vsrv->no_vmac == 1)
-			vrrpd_log(LOG_WARNING, "vrrpd: vmac off");
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information vmac off");
 		if (vsrv->preempt == 1)
-			vrrpd_log(LOG_WARNING, "vrrpd: preempt on");
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt on");
 		else if(vsrv->preempt == 0)
-		    vrrpd_log(LOG_WARNING, "vrrpd: preempt off");
+		    vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt off");
 		else
-		    vrrpd_log(LOG_WARNING, "vrrpd: preempt %d",vsrv->preempt);
+		    vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt %d",vsrv->preempt);
 		    
 		if (vsrv->state == 3)
-                        vrrpd_log(LOG_WARNING, "vrrpd: state MASTER since %s", timenowstring);
+                        vrrpd_log(LOG_WARNING, "vrrpd: atropos information state MASTER since %s", timenowstring);
 		else 
-			vrrpd_log(LOG_WARNING, "vrrpd: state BACKUP since %s", timenowstring);	
-		vrrpd_log(LOG_WARNING, "vrrpd: Virtual ID: %d", vsrv->vrid);
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information state BACKUP since %s", timenowstring);	
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information Virtual ID: %d", vsrv->vrid);
 		if (monitor)		
-			vrrpd_log(LOG_WARNING, "vrrpd: monitoring process: %d", monitor);
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information monitoring process: %d", monitor);
 		else
-			vrrpd_log(LOG_WARNING, "vrrpd: monitoring process: off");
+			vrrpd_log(LOG_WARNING, "vrrpd: atropos information monitoring process: off");
 	} else { 
-		vrrpd_log(LOG_WARNING, "vrrpd: WARNING critical: /tmp is not writable");
+		vrrpd_log(LOG_WARNING, "vrrpd: atropos information WARNING critical: /tmp is not writable");
 	}
 }
 
