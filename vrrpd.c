@@ -1630,6 +1630,7 @@ static void signal_end( int nosig )
 static void writestate()
 {
 	vrrp_rt	*vsrv = &glob_vsrv;
+	vrrp_if *vif = &vsrv->vif;
 	mypid = getpid();
 	if ((f = fopen("/tmp/.vrrpstate", "w")) != NULL){
 		fprintf(f, "%d", vsrv->state);
@@ -1639,7 +1640,7 @@ static void writestate()
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Master: %s", upscript);
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Backup: %s", scriptdown);
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information priority %d", vsrv->priority);
-		if( VRRP_AUTH_PASS ) {
+		if( !vif->auth_type == VRRP_AUTH_NONE) {
 			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password on");
 		} else {
 			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password off");
