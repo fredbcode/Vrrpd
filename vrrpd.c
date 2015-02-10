@@ -81,15 +81,17 @@ char pidend[6] = ".pid";
 char statetemp[18] = "/vrrpdstatedown_";
 char statetemp2[FILENAME_MAX+1];
 char temp2[2] = "/";
-int monitor;
-int monitortemp;
-int pid;
-int ix;
+int monitor = 0;
+int monitortemp = 0;
+int pid = 0;
+int ix = 0;
 int maxrand = 10;
-int nb;
-int retval;
+int nb = 0;
+int retval = 0;
 char globalstatedown[FILENAME_MAX+1];
 char statedown[FILENAME_MAX+1];
+char backup_reason[FILENAME_MAX+1];
+char master_reason[FILENAME_MAX+1];
 
 /****************************************************************
  NAME	: killvrrpd				
@@ -104,7 +106,6 @@ void killvrrpd(int killnu,char *ifname)
 	char namepid[FILENAME_MAX+1]="vrrpd_";
 	mypid = getpid();
 	int pidtab[max_monitor];
-	int ix;
 	// Tab with 0 value 
 	for (ix = 0 ; ix < max_monitor; ix++)
 	 	pidtab[ix] = 0;
@@ -257,19 +258,17 @@ static int pidfile_write( vrrp_rt *vsrv )
 ****************************************************************/
 static void pidfile_rm( vrrp_rt *vsrv )
 {
-	int ix = 10;
-	int ix2;
 	unlink( pidfile_get_name(vsrv) );
 
-	for (ix2=0; ix2 <= ix-1; ix2++) {
-		sprintf (&statedown[24],"%d",ix2);
+	for (ix=0; ix <= max_monitor; ix++) {
+		sprintf (&statedown[24],"%d",ix);
 		if ((f = fopen(statedown, "r")) != NULL) {
 			unlink(statedown);
 			fclose(f);
-			}
 		}
+	}
 
-		}
+}
 
 /****************************************************************
  NAME	: pidfile_exist				00/10/04 21:12:26
@@ -1249,6 +1248,8 @@ int ethsup(vrrp_rt *vsrv)
 		if (retval == 1)
 			{
 			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Link down %s\n",vsrv->vrid, ifname, ifname);
+                        if (strlen(backup_reason) == 0)
+                                strcpy(backup_reason,"Network link down");
 			killvrrpd(12,ifname);
 			}			
 		}
@@ -1344,6 +1345,8 @@ static void state_goto_master( vrrp_rt *vsrv )
 				} else {
 					vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: Want to be master -> Another vrrpd with state Backup : %s", vsrv->vrid, vif->ifname, statedown);
 					vsrv->wantstate = VRRP_STATE_BACK;
+					if (strlen(backup_reason) == 0)
+						strcpy(backup_reason,"Another vrrpd with state Backup");
 	 				vsrv->state = VRRP_STATE_INIT;
 				}
 			}	
@@ -1354,8 +1357,8 @@ static void state_goto_master( vrrp_rt *vsrv )
 	}
  
 	vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%swe are now the master router.", vsrv->vrid, vif->ifname,master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is down, " : "");
-
-		/* set the VRRP MAC address -- rfc2338.7.3 */
+	strcpy(backup_reason,"");
+	/* set the VRRP MAC address -- rfc2338.7.3 */
 	if( !vsrv->no_vmac ){
 		vrrpd_log(LOG_WARNING, "VRRP ID %d change MAC %s",vsrv->vrid, vif->ifname);
 		hwaddr_set( vif->ifname, vrrp_hwaddr, sizeof(vrrp_hwaddr) );
@@ -1434,10 +1437,15 @@ static void state_leave_master( vrrp_rt *vsrv, int advF )
 static void state_init( vrrp_rt *vsrv )
 {	
 
-	if( vsrv->priority == VRRP_PRIO_OWNER 
-			|| vsrv->wantstate == VRRP_STATE_MAST ){
-			state_goto_master( vsrv );
-		
+	if (vsrv->priority == VRRP_PRIO_OWNER ) {
+		 if (strlen(master_reason) == 0)
+			strcpy(master_reason,"Priority");
+		state_goto_master( vsrv );
+	}
+	if (vsrv->wantstate == VRRP_STATE_MAST ){
+		if (strlen(master_reason) == 0)
+			strcpy(master_reason,"No packets from peer between time delay");
+		state_goto_master( vsrv );
 	} else { 
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
@@ -1540,7 +1548,8 @@ if( vsrv->state != VRRP_STATE_BACK ){
                        		}
                         	wait(NULL);
                 	}
-
+			
+			strcpy(master_reason,"");
 			/* send gratuitous ARP for all the non-vrrp ip addresses to update
 			** the cache of remote hosts using these addresses */
 			vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: Send gratuitous ARP for all ip addresses", vsrv->vrid, vif->ifname);
@@ -1656,10 +1665,24 @@ static void writestate()
 		else
 		    vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt %d",vsrv->preempt);
 		    
-		if (vsrv->state == 3)
+		if (vsrv->state == 3) {
                         vrrpd_log(LOG_WARNING, "vrrpd: atropos information state MASTER since %s", timenowstring);
-		else 
+                        if (strlen(master_reason) != 0)
+				vrrpd_log(LOG_WARNING, "vrrpd: atropos information reason %s", master_reason);	
+		} else { 
 			vrrpd_log(LOG_WARNING, "vrrpd: atropos information state BACKUP since %s", timenowstring);	
+                        if (strlen(backup_reason) != 0)
+				vrrpd_log(LOG_WARNING, "vrrpd: atropos information reason %s", backup_reason);	
+			if (vsrv->state == 2) {
+				for (ix=0; ix <= max_monitor; ix++) {
+                			sprintf (&statedown[24],"%d",ix);
+                			if ((f = fopen(statedown, "r")) != NULL) {
+						vrrpd_log(LOG_WARNING, "vrrpd: atropos information lock file %s", statedown);
+                        			fclose(f);
+                			}       
+		        	}	       
+			}
+		}
 		vrrpd_log(LOG_WARNING, "vrrpd: atropos information Virtual ID: %d", vsrv->vrid);
 		if (monitor)		
 			vrrpd_log(LOG_WARNING, "vrrpd: atropos information monitoring process: %d", monitor);
@@ -1685,10 +1708,13 @@ static void signal_user( int nosig )
 
         if( nosig == SIGUSR2 ){
                 if( vsrv->state == VRRP_STATE_BACK ){
-                vsrv->wantstate = VRRP_STATE_INIT;
-                vsrv->state = VRRP_STATE_INIT;}
-                else
-                {vsrv->wantstate = VRRP_STATE_BACK;}
+                	vsrv->wantstate = VRRP_STATE_INIT;
+                	vsrv->state = VRRP_STATE_INIT;
+                } else {
+			vsrv->wantstate = VRRP_STATE_BACK;
+			if (strlen(backup_reason) == 0)
+				strcpy(backup_reason,"receive backup signal");
+		}
         }
 
         if( nosig == SIGTTIN ){
