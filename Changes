@@ -1,3 +1,8 @@
+10/02/2014 vrrpd 1.12
+
+More information log (with atropos --state and syslog) 
+Minor fixes
+
 10/09/2014 vrrpd 1.11
 
 Fix: The change in time cause the backup vrrp daemon to send vrrp advertisements - By charles savoie
