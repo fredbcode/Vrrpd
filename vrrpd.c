@@ -555,14 +555,7 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 		VRRP_LOG(("Invalid vrrp checksum" ));
 		return 1;
 	}
-/* MUST perform authentication specified by Auth Type */
- 	/* check the authentication type */
-	if( vif->auth_type != hd->auth_type ){		
-		VRRP_LOG(("receive a %d auth, expecting %d!", vif->auth_type
-							, hd->auth_type));
-		return 1;
-	}
-
+	/* MUST perform authentication specified by Auth Type */
 	/* MUST verify that the VRID is valid on the receiving interface */
 	if( vsrv->vrid != hd->vrid ){
 		return 1;
@@ -578,6 +571,13 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 				vrrpd_log(LOG_WARNING,"Passwd: %s Passwd: %s - Vid: %d Vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
 				return 2;
 			}
+			 /* check the authentication type */
+			if( vif->auth_type != hd->auth_type ){
+				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive an invalid passwd type \n", vsrv->vrid);
+				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive a %d auth, expecting %d ! from %d \n", vsrv->vrid, vif->auth_type, hd->auth_type, hd->vrid);
+				return 2;
+			}
+			
 		}
 	}
 
