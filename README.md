@@ -59,7 +59,8 @@ The virtual MAC address is automaticaly generated
 
 So, In our case there are three adresses on Master
 
-10.17.1.200 and 192.168.14.2 on eth0 -> Same VMAC
+10.17.1.200 and 192.168.14.2 on eth0 -> With same VMAC
+
 10.17.1.20 on eth1 -> VMAC
 
 When one NIC is BACKUP, vrrpd process detect a failure and share with the 'other' network interface his own VRRP state.
