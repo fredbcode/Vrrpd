@@ -43,7 +43,7 @@ For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/
 * U = Optional script when VRRPD become master
 * D = Optional script when VRRPD become backup
 
-**About U and D :** For example you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
+**About U and D :** eg, you can configure some IP alias (or vlan) addresses who will share the VMAC (in this case don't forget to shutdown this adresses in backup script ...)
 
 In MASTER.sh
 
@@ -56,6 +56,14 @@ ifconfig eth0:0 down
 Of course, you can put whatever you like.
 
 The virtual MAC address is automaticaly generated
+
+So, In our case there are three adresses on Master
+
+10.17.1.200 and 192.168.14.2 on eth0 -> Same VMAC
+10.17.1.20 on eth1 -> VMAC
+
+When one NIC is BACKUP, vrrpd process detect a failure and share with the 'other' network interface his own VRRP state.
+This prevent newtork problem because single interface failure can cause asymmetrical routing issues
 
 **vrrpd usage :**
 ```
