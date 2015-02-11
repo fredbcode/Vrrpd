@@ -1,6 +1,6 @@
-10/02/2014 vrrpd 1.12
+10/02/2015 vrrpd 1.12
 
-More information log (with atropos --state and syslog) 
+More information in log (with atropos --state and syslog) 
 Minor fixes
 
 10/09/2014 vrrpd 1.11
