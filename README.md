@@ -16,7 +16,7 @@ Tested on Linux only http://numsys.eu
 * VRRPD - Optional subnet mask for the VIP address
 * Atropos client - You can use atropos for change or/and know the master's state (for example in supervision script)
 
-With vmac disable Spanning Tree Protocol (STP) on the switch ports, where VRRP is running !
+With vmac disable Spanning Tree Protocol (STP) on the switch ports where VRRP is running !
 On VM vmac should be disabled (-n)
 
 The Virtual Router Redundancy Protocol (VRRP) is a computer networking protocol that provides for automatic assignment of available Internet Protocol (IP).
@@ -37,7 +37,7 @@ vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/D
 
 For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/master/scripts
 
-* i = eth to listen and VIP network adress - 10.16.1.200 is the VIP shared on eth0 -
+* i = eth to listen and VIP network adress (could vlan be VLAN like eth0.190) - 10.16.1.200 is the VIP shared on eth0 -
 * v = VID 51 
 * M = M 2 monitoring two process on each machine (9 max), and eth link up/down supervision 
 * U = Optional script when VRRPD become master
