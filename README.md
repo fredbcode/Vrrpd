@@ -115,3 +115,7 @@ atropos --state			Status
 atropos --version		version 
 It requires to be run as root 
 ```
+
+With atropos --state
+
+syslog file contains detailed information about VRRPD state 
