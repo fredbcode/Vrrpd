@@ -88,6 +88,8 @@ int ix = 0;
 int maxrand = 10;
 int nb = 0;
 int retval = 0;
+/* default delay */
+int showdelay = 1;
 char globalstatedown[FILENAME_MAX+1];
 char statedown[FILENAME_MAX+1];
 char backup_reason[FILENAME_MAX+1];
@@ -1020,6 +1022,7 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 				fprintf( stderr, "bad advert_int!\n" );
 				goto err;
 			}
+			showdelay = vsrv->adver_int;
 			vsrv->adver_int *= VRRP_TIMER_HZ;
 			break;
 	
@@ -1444,7 +1447,7 @@ static void state_init( vrrp_rt *vsrv )
 	}
 	if (vsrv->wantstate == VRRP_STATE_MAST ){
 		if (strlen(master_reason) == 0)
-			strcpy(master_reason,"No packets from peer between time delay");
+			strcpy(master_reason,"No packet from peer before time delay");
 		state_goto_master( vsrv );
 	} else { 
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
@@ -1482,6 +1485,7 @@ static void state_back( vrrp_rt *vsrv )
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
 		vsrv->wantstate = 0;
+		strcpy(master_reason,"No packet from peer before time delay");
 		state_goto_master( vsrv );
 		return;
 	}
@@ -1641,55 +1645,59 @@ static void writestate()
 	vrrp_rt	*vsrv = &glob_vsrv;
 	vrrp_if *vif = &vsrv->vif;
 	mypid = getpid();
+
 	if ((f = fopen("/tmp/.vrrpstate", "w")) != NULL){
 		fprintf(f, "%d", vsrv->state);
 		fclose(f);
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information process : %d", mypid);
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information version: %s", VRRPD_VERSION);
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Master: %s", upscript);
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information script Backup: %s", scriptdown);
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information priority %d", vsrv->priority);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information process : %d",vsrv->vif.ifname, mypid);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information version: %s", vsrv->vif.ifname, VRRPD_VERSION);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information script Master: %s", vsrv->vif.ifname, upscript);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information script Backup: %s", vsrv->vif.ifname, scriptdown);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information priority %d", vsrv->vif.ifname, vsrv->priority);
 		if( !vif->auth_type == VRRP_AUTH_NONE) {
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password on");
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information basic password on", vsrv->vif.ifname);
 		} else {
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information basic password off");
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information basic password off", vsrv->vif.ifname);
 		}
 		if (vsrv->no_vmac == 0)
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information vmac on");
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information vmac on", vsrv->vif.ifname);
 		if (vsrv->no_vmac == 1)
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information vmac off");
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information vmac off", vsrv->vif.ifname);
 		if (vsrv->preempt == 1)
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt on");
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information preempt on", vsrv->vif.ifname);
 		else if(vsrv->preempt == 0)
-		    vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt off");
+		    vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information preempt off", vsrv->vif.ifname);
 		else
-		    vrrpd_log(LOG_WARNING, "vrrpd: atropos information preempt %d",vsrv->preempt);
+		    vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information preempt %d",vsrv->vif.ifname, vsrv->preempt);
 		    
+                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information delay %d",vsrv->vif.ifname, showdelay);
 		if (vsrv->state == 3) {
-                        vrrpd_log(LOG_WARNING, "vrrpd: atropos information state MASTER since %s", timenowstring);
+                        vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
                         if (strlen(master_reason) != 0)
-				vrrpd_log(LOG_WARNING, "vrrpd: atropos information reason %s", master_reason);	
+				vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, master_reason);	
 		} else { 
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information state BACKUP since %s", timenowstring);	
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);	
                         if (strlen(backup_reason) != 0)
-				vrrpd_log(LOG_WARNING, "vrrpd: atropos information reason %s", backup_reason);	
+				vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, backup_reason);	
 			if (vsrv->state == 2) {
 				for (ix=0; ix <= max_monitor; ix++) {
                 			sprintf (&statedown[24],"%d",ix);
                 			if ((f = fopen(statedown, "r")) != NULL) {
-						vrrpd_log(LOG_WARNING, "vrrpd: atropos information lock file %s", statedown);
+						vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information lock file %s",vsrv->vif.ifname, statedown);
                         			fclose(f);
                 			}       
 		        	}	       
+			} else {
+				vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);	
 			}
 		}
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information Virtual ID: %d", vsrv->vrid);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information Virtual ID: %d",vsrv->vif.ifname, vsrv->vrid);
 		if (monitor)		
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information monitoring process: %d", monitor);
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information monitoring process: %d", vsrv->vif.ifname, monitor);
 		else
-			vrrpd_log(LOG_WARNING, "vrrpd: atropos information monitoring process: off");
+			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information monitoring process: off", vsrv->vif.ifname);
 	} else { 
-		vrrpd_log(LOG_WARNING, "vrrpd: atropos information WARNING critical: /tmp is not writable");
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information WARNING critical: /tmp is not writable", vsrv->vif.ifname);
 	}
 }
 
