@@ -754,23 +754,19 @@ void hello_send_pkt(vrrp_rt *vsrv, int addr)
     	stSockAddr.sin_family = AF_INET;
     	stSockAddr.sin_port = htons(1100);
     	Res = inet_pton(AF_INET, magicdipaddr, &stSockAddr.sin_addr);
-    	if (0 > Res)
-    	{
-      	perror("error: first parameter is not a valid address family");
-      	close(SocketFD);
-	return;
-    	}
-    	else if (0 == Res)
-    	{
-      	perror("char string (second parameter does not contain valid ipaddress)");
-      	close(SocketFD);
-	return;
+    	if (0 > Res){
+      		perror("error: first parameter is not a valid address family");
+      		close(SocketFD);
+		return;
+    	} else if (0 == Res){
+      		perror("char string (second parameter does not contain valid ipaddress)");
+      		close(SocketFD);
+		return;
     	}
  
-    	if (-1 == connect(SocketFD, (struct sockaddr *)&stSockAddr, sizeof(stSockAddr)))
-    	{
-      	close(SocketFD);
-	return;
+    	if (-1 == connect(SocketFD, (struct sockaddr *)&stSockAddr, sizeof(stSockAddr))){
+      		close(SocketFD);
+		return;
     	}
 
     	shutdown(SocketFD, SHUT_RDWR);
@@ -1181,7 +1177,7 @@ static int vrrp_read( vrrp_rt *vsrv, char *buf, int buflen )
  AIM	:
  REMARK	:monitoring ethx
 ****************************************************************/
-//static int ethsup(vrrp_rt *vsrv, char *buf, int buflen )
+
 int ethsup(vrrp_rt *vsrv)
 {
 	int skfd = -1;
@@ -1442,18 +1438,21 @@ static void state_init( vrrp_rt *vsrv )
 
 	if (vsrv->priority == VRRP_PRIO_OWNER ) {
 		 if (strlen(master_reason) == 0)
-			strcpy(master_reason,"Priority");
-		state_goto_master( vsrv );
+			strcpy(master_reason,"Priority1");
+		 state_goto_master( vsrv );
 	}
 	if (vsrv->wantstate == VRRP_STATE_MAST ){
-		if (strlen(master_reason) == 0)
-			strcpy(master_reason,"No packet from peer before time delay");
 		state_goto_master( vsrv );
 	} else { 
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
 		vsrv->state = VRRP_STATE_BACK;
 		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - State INIT -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+		if (master_ipaddr) {
+			if (strlen(backup_reason) == 0) 
+				strcpy(backup_reason,"Read packet from peer");
+			vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: be backup %s%s - Receive packet from Master -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+		}
 	        if (timenow != ((time_t)-1)){
        			timenow = time(NULL);
                		timenowstring = ctime(&timenow);
@@ -1485,17 +1484,22 @@ static void state_back( vrrp_rt *vsrv )
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
 		vsrv->wantstate = 0;
-		strcpy(master_reason,"No packet from peer before time delay");
+		if (strlen(master_reason) == 0)
+			strcpy(master_reason,"No packet from peer before time delay");
 		state_goto_master( vsrv );
 		return;
 	}
 	if( !len )	return;
 
+	if (( hd->priority < vsrv->priority ) && ( hd->priority > 0))
+		strcpy(master_reason,"Priority");
+
 	if ( hd->priority == 0 ) {
 		VRRP_TIMER_SET( vsrv->ms_down_timer, VRRP_TIMER_SKEW(vsrv) );
-	} else if( !vsrv->preempt || hd->priority >= vsrv->priority ) {
+	} else if ( !vsrv->preempt || hd->priority >= vsrv->priority ) {
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
+		strcpy(backup_reason,"Priority");
 	}
 }
 
@@ -1513,7 +1517,7 @@ static void state_mast( vrrp_rt *vsrv )
 	struct iphdr	*iph	= (struct iphdr *)buf;
 	vrrp_pkt	*hd	= (vrrp_pkt *)((char *)iph + (iph->ihl<<2));
 
-if( vsrv->state != VRRP_STATE_BACK ){
+	if( vsrv->state != VRRP_STATE_BACK ){
 		if( vsrv->wantstate == VRRP_STATE_BACK ){
 			goto be_backup;
 		} 
@@ -1524,6 +1528,7 @@ if( vsrv->state != VRRP_STATE_BACK ){
 			return;
 		}
 		if( !len )	return;
+
 		if( hd->priority == 0 ){
 			vrrp_send_adv( vsrv, vsrv->priority );
 			VRRP_TIMER_SET(vsrv->adver_timer,vsrv->adver_int);
@@ -1531,7 +1536,6 @@ if( vsrv->state != VRRP_STATE_BACK ){
 				(hd->priority == vsrv->priority &&
 				ntohl(iph->saddr) > vsrv->vif.ipaddr) ){
 			int delay	= 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
-	
 	be_backup:
 			state_leave_master( vsrv, 0 );
 			vsrv->state	= VRRP_STATE_BACK;
