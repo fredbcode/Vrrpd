@@ -1436,9 +1436,7 @@ static void state_leave_master( vrrp_rt *vsrv, int advF )
 static void state_init( vrrp_rt *vsrv )
 {	
 
-	if (vsrv->priority == VRRP_PRIO_OWNER ) {
-		 if (strlen(master_reason) == 0)
-			strcpy(master_reason,"Priority1");
+	if ( vsrv->priority == VRRP_PRIO_OWNER ) {
 		 state_goto_master( vsrv );
 	}
 	if (vsrv->wantstate == VRRP_STATE_MAST ){
