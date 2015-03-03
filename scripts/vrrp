@@ -26,14 +26,15 @@ start() {
         pidof -x vrrpd > /dev/null
         if [ $?  = 1 ]; then
         log_daemon_msg "Start vrrpd .."
- 	echo -e "\n"	
+ 	echo "\n"	
 	$conf > /dev/null
 	log_daemon_msg "Start: done"
- 	echo -e "\n"	
+ 	echo "\n"	
         else
         log_daemon_msg "vrrpd was already started ..."
+ 	echo "\n"	
         log_daemon_msg "vrrp pid: $pidvrrpd"
- 	echo -e "\n"	
+ 	echo "\n"	
         fi
 }
 
@@ -42,11 +43,11 @@ stop() {
         pidof -x vrrpd > /dev/null
         if [ $? = 0 ]; then
         log_daemon_msg "Stop vrrpd .."
- 	echo -e "\n" 	
+ 	echo "\n" 	
         cnt=0
 	killall vrrpd
 	log_daemon_msg "Exit Vrrpd: State backup and Shutting down"
- 	echo -e "\n"	
+ 	echo "\n"	
         while pidof vrrpd >/dev/null
         	do
         	cnt=`expr $cnt + 1`
@@ -59,12 +60,12 @@ stop() {
 			log_daemon_msg "Please Wait" "$cnt : Pid en cours de fonctionnement " && pidof vrrpd
                 done
 
- 	echo -e "\n" 	
+ 	echo "\n" 	
         log_daemon_msg "stop: done"
- 	echo -e "\n" 	
+ 	echo "\n" 	
         else
         log_daemon_msg "vrrpd was already stopped"
- 	echo -e "\n" 	
+ 	echo "\n" 	
         fi
 }
 
@@ -82,7 +83,7 @@ case "$1" in
 	;;
  *)
         log_daemon_msg "Usage: /etc/init.d/vrrp {start|stop|restart}" >&2
-	echo -e "\n"
+	echo "\n"
         exit 1
         ;;
 esac
