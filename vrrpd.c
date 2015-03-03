@@ -1651,6 +1651,7 @@ static void writestate()
 	if ((f = fopen("/tmp/.vrrpstate", "w")) != NULL){
 		fprintf(f, "%d", vsrv->state);
 		fclose(f);
+		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos --------- Start PID %d ---------",vsrv->vif.ifname, mypid);
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information process : %d",vsrv->vif.ifname, mypid);
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information version: %s", vsrv->vif.ifname, VRRPD_VERSION);
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information script Master: %s", vsrv->vif.ifname, upscript);
@@ -1701,6 +1702,7 @@ static void writestate()
 	} else { 
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information WARNING critical: /tmp is not writable", vsrv->vif.ifname);
 	}
+	vrrpd_log(LOG_WARNING, "vrrpd: %s atropos --------- End Pid %d ---------",vsrv->vif.ifname, mypid);
 }
 
 /****************************************************************
