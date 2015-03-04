@@ -1,4 +1,4 @@
-10/02/2015 vrrpd 1.12
+04/03/2015 vrrpd 1.12
 
 More information in log (with atropos --state and syslog) 
 Better control with VRRPD packets without any identification (like Arkoon FW)
