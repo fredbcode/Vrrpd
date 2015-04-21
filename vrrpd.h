@@ -16,7 +16,7 @@ REMARK      :
 /* system include */
 #include <stdint.h>
 
-#define VRRPD_VERSION	"Advanced Vrrpd 1.12"
+#define VRRPD_VERSION	"Advanced Vrrpd 1.13"
 /* Scott added 9-4-02 */
 #include <syslog.h>
 #define vrrpd_log syslog
