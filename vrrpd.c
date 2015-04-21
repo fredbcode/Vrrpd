@@ -828,7 +828,7 @@ static void usage( void )
 	fprintf( stderr, "  ipaddr/length   : Should be at the end - IP address(es) of the virtual server and the length of the subnet mask - \n" );
 	fprintf( stderr, "  -V        : display version\n\n" );
         fprintf( stderr, " ---------------------------------------------------------------------------\n");
-	fprintf( stderr, " Frederic Bourgeois http://numsys.eu\n");
+	fprintf( stderr, " Frederic Bourgeois web: http://numsys.eu code: https://github.com/fredbcode/Vrrpd\n");
 	fprintf( stderr, " Based on (http://sourceforge.net/projects/vrrpd/)\n\n");
 	fprintf( stderr, " Supplementary Options: \n");
 	fprintf( stderr, "  -U	:	(-U <file>): run <file> to become a master)\n");
