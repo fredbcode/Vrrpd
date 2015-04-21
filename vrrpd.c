@@ -836,12 +836,12 @@ static void usage( void )
         fprintf( stderr, "  -M	:	(-M x) Monitoring process and Network (Max 9)\n");
         fprintf( stderr, "  If one vrrpd become backup (or died), all other process go to Backup state\n");
         fprintf( stderr, "  If one network interface failed (ifconfig Down, link) all other process go to Backup state\n");
-        fprintf( stderr, "  Not supported (in part or whole) on all ethernet drivers\n");
+        fprintf( stderr, "  Not supported (in part or whole) on all ethernet drivers\n\n");
         fprintf( stderr, " POWER USERS --------------------------------------------------------------\n");
         fprintf( stderr, " Magic packet erase arp table (for those who work without vmac - send fake packet to port 1100 -)\n");
         fprintf( stderr, "  -I ipvip	:	Choose VIP source to send magic packet - Erase vip from mac table -\n");
         fprintf( stderr, "  -O ipdst	:	Gateway destination\n");
-        fprintf( stderr, "  Example: vrrpd -i eth0 -v 11 10.1.1.1 -S 10.1.1.1 -O 10.1.1.254\n");
+        fprintf( stderr, "  Example: vrrpd -i eth0 -v 11 10.1.1.1 -I 10.1.1.1 -O 10.1.1.254\n");
         fprintf( stderr, "\n");
 }
 
