@@ -1770,44 +1770,45 @@ static void signal_user( int nosig )
 int main( int argc, char *argv[] )
 {
 	vrrp_rt	*vsrv = &glob_vsrv;
-    pid_t sid;
+    	pid_t sid;
 #if 1	/* for debug only */
 	setbuf(stdout,NULL);
 	setbuf(stderr,NULL);
 #endif 
 	
+	init_virtual_srv(vsrv);
+
+	// Parse cmdline //
+        argc = parse_cmdline(vsrv, argc, argv);
+        if( argc < 0 ) {
+                exit (0);
+        }
+
 	// First we fork and kill our parent
 	if (fork())
 	{
-	       /* Close out the standard file descriptors */
-        close(STDIN_FILENO);
-        close(STDOUT_FILENO);
-        close(STDERR_FILENO);
+		/* Close out the standard file descriptors */
+        	close(STDIN_FILENO);
+        	close(STDOUT_FILENO);
+        	close(STDERR_FILENO);
 		exit(0);
 	}
 	/* Change the file mode mask */
-    umask(0);       
+   	umask(0);       
     
-    /* Open any logs here */
+    	/* Open any logs here */
     
-    /* Create a new SID for the child process */
-    sid = setsid();
-    if (sid < 0) {
+    	/* Create a new SID for the child process */
+    	sid = setsid();
+    	if (sid < 0) {
             /* Log any failures here */
             exit(EXIT_FAILURE);
-    }
+    	}
 			
 	//open log missing *AA*
 	openlog ("vrrpd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	vrrpd_log(LOG_WARNING, "vrrpd version %s starting...\n", VRRPD_VERSION);
 	snprintf( PidDir, sizeof(PidDir), "%s", VRRP_PIDDIR_DFL );
-
-	init_virtual_srv(vsrv);
-	/* parse the command line */
-	argc = parse_cmdline(vsrv,argc, argv );
-	if( argc < 0 ) {
-		return -1;
-	}
 	
 	/* add the virtual server ip */
 	for( ; argv[argc]; argc++ ){
@@ -1825,15 +1826,15 @@ int main( int argc, char *argv[] )
 			cfg_add_ipaddr( vsrv, ntohl(ipaddr), length );
 		}
 
-	/* check if the minimal configuration has been done */
-	if( chk_min_cfg( vsrv ) ){
-		fprintf(stderr, "try '%s -h' to read the help\n", argv[0]);
-		return -1;
-	}
-    /* Close out the standard file descriptors */
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
-    close(STDERR_FILENO);
+        /* check if the minimal configuration has been done */
+        if( chk_min_cfg( vsrv ) ){
+                fprintf(stderr, "try '%s -h' to read the help\n", argv[0]);
+                exit ( 0 );
+        }
+    	/* Close out the standard file descriptors */
+    	close(STDIN_FILENO);
+    	close(STDOUT_FILENO);
+    	close(STDERR_FILENO);
 
 	if( open_sock( vsrv ) ){
 		return -1;
