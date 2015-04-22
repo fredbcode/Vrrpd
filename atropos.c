@@ -35,17 +35,19 @@ typedef u_int8_t u8;
 #define SIOCGPARAMS (SIOCDEVPRIVATE+3) 		/* Read operational parameters. */
 #define SIOCSPARAMS (SIOCDEVPRIVATE+4) 		/* Set operational parameters. */
 #endif
-char version1[10] = "0.70";
+#define DATA_MAX 10000
+
+char version1[10] = "0.80";
 char buff[80];
-int ix =9;
+char data[DATA_MAX];
 char pidend[6] = ".pid";
 char temp2[2] = "/";
 int monitor;
 int pid;
-int ix2;
-int ix4 = 6;
-int ix3;
-int max = 8;
+int ix = 0;
+int max_net = 8;
+// Five loop with twice SIGNAL
+int max_count = 5;
 int nb;
 int retval;
 char globalstatedown[FILENAME_MAX+1];
@@ -54,6 +56,7 @@ char statetemp[18] = "/vrrpdstatedown_";
 char statetemp2[FILENAME_MAX+1];
 static char	PidDir[FILENAME_MAX+1];
 char namepid[FILENAME_MAX+1]="vrrpd_";
+char temp[FILENAME_MAX+1];
 
 DIR *currentDir;
 struct dirent *fichier;
@@ -92,16 +95,14 @@ void fonctinfo() {
 		FILE * child_process = popen("ps -e |grep vrrpd | wc -l", "r");
 		fgets(buf, sizeof(buf), child_process);
 		pclose(child_process);
-		if (child_process == NULL) {
+            	printf("############################################################\n\n");
+		if (child_process == NULL) 
 			fprintf(stdout,"Could not open pipe:\n");	
-		}
 		if ( !strncmp(buf, "0", 1 )) {
 			fprintf(stdout, "\n");	
 			fprintf(stdout,"VRRPD RUN: 0\n");
 			exit(0);	
 		}
- 		fprintf(stdout, "\n");	
-
 	  	snprintf( PidDir, sizeof(PidDir), "%s", VRRP_PIDDIR_DFL );
 
                 if( NULL == ( currentDir = opendir(PidDir))) {
@@ -117,26 +118,27 @@ void fonctinfo() {
                                                         fclose(f);
                                                         int pid = atoi(buff);
                                                         kill(pid,SIGUSR1);
+							char vrrp_tmp[FILENAME_MAX]="/tmp/";
 							sleep(1);
-							if ((f = fopen("/tmp/.vrrpstate", "r")) != NULL) {
-                						fgets(buff, sizeof(buff), f);
-                        					int state = atoi(buff);
-                        					fclose(f);
-								if (state != 3){
-                               						fprintf(stdout, "VRRP PID %d STATE: STATE BACKUP\n", pid);
-								} else {
- 									fprintf(stdout, "VRRPD STATE %d: STATE MASTER\n", pid);
-									} 
+						        snprintf(temp, sizeof(temp), "vrrpstate%d", pid);
+        						strcat(vrrp_tmp, temp);
+        						if ((f = fopen(vrrp_tmp, "r")) != NULL){
+       								while (fgets(data, DATA_MAX, f) != NULL) 
+        							{
+            								printf("%s", data);
+        							}
 							 } else {
-                               						fprintf(stdout, "VRRP PID %d File /tmp/.vrrpstate STATE NOT FOUND\n", pid);
+                               						fprintf(stdout, "VRRP PID %d File %s STATE NOT FOUND\n", pid, vrrp_tmp);
 								}
 						 }
                                                         statetemp2[0]='\0';
+							printf("\n");
+            						printf("############################################################\n\n");
                                                  }
                        }
 		}
-                
-		fprintf(stdout, "\n");
+
+               // End Loop // 
 		FILE *filestate = popen("ps -fC vrrpd", "r");
 		if (filestate != NULL){
 			while (fgets (ligne, sizeof ligne, filestate) != NULL){
@@ -150,10 +152,10 @@ void fonctinfo() {
  			}
 
 
-	for (ix3=0; ix3 <= ix4; ix3++) {
+	for (ix=0; ix < max_net; ix++) {
 
 		struct  ifreq  devea;
-		int ether = ix3;
+		int ether = ix;
 		s = socket(AF_INET, SOCK_DGRAM, 0);
 		if (s < 0)
 		{
@@ -166,14 +168,14 @@ void fonctinfo() {
 		{
 			printf("\n");
 			printf("eth%d Current MAC is: ",ether);
-			for (i = 0; i < 6; i++)
+			for (i = 0; i < max_net; i++)
 			{
-				printf("%2.2x ", i[devea.ifr_hwaddr.sa_data] & 0xff);
+				printf("%2.2x", i[devea.ifr_hwaddr.sa_data] & 0xff);
 				
 			}
+			printf("\n");
 		}		
 	}
-	printf("\n");
 	printf("\n");
 	fprintf(stdout, "Be careful, Atropos doesn't show virtual mac address of vlan interface");
 	printf("\n");
@@ -278,8 +280,9 @@ int main(int argc, char **argv)
 		fprintf(stdout,"VRRPD BACKUP\n");
 		fprintf(stdout,"Please wait\n");
 		fprintf(stdout,"Don't use \"CTRL+C\"\n");
-		for (ix3=0; ix3 <= ix4; ix3++) {
-				fprintf(stderr,"\\");
+		for (ix = 0; ix <= max_count; ix++) {
+				fprintf(stderr, "\n");
+				fprintf(stderr,"Stage: %d|%d:  ", ix, max_count);
 				sleep (1);
 				fprintf(stderr,"\b");
 				fprintf(stderr,"|");
@@ -303,12 +306,13 @@ int main(int argc, char **argv)
 				}
 				sleep(1);
                                 fprintf(stderr,"\b");
-                                fprintf(stderr,"/");
+				fprintf(stderr,"/");
 				sleep (1);
                                 fprintf(stderr,"\b");
-                                fprintf(stderr,"-");
-                  	        sleep (1);
+				fprintf(stderr,"-");
+				sleep (1);
 				fprintf(stderr,"\b");
+				fprintf(stderr,"DONE");
                                 if( NULL == ( currentDir = opendir(PidDir))) {
                                         perror( "opendir()" );
                                         } else {
@@ -331,7 +335,8 @@ int main(int argc, char **argv)
 		}
 
 		fprintf(stdout,"\n");	
-		fprintf(stdout,"DONE\n");	
+		fprintf(stdout,"OK \n");
+		fonctinfo();	
 		return 0;
 	}
 
