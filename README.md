@@ -99,7 +99,7 @@ Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-z prio]
  Magic packet erase arp table (for those who work without vmac - send fake packet to port 1100 -)
   -I ipvip	:	Choose VIP source to send magic packet - Erase vip from mac table -
   -O ipdst	:	Gateway destination
-Example vrrpd -S 10.1.1.1 -O 10.1.1.254
+Example vrrpd -I 10.1.1.1 -O 10.1.1.254
 ```
 **Atropos usage:**
 ```
