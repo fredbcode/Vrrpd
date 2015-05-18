@@ -1,7 +1,10 @@
 Vrrpd
 =====
 
-Advanced Vrrpd
+Advanced Vrrpd: high-availability solution, easy to use and easy to configure.
+No dependency is required, it works with very low memory and CPU usage.
+
+A lightweight, fast, and free solution  
 
 That version has many improvements like monitoring other vrrpd processes and executing a command when changing back and forth from master to backup. 
 
