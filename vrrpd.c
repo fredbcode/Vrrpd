@@ -1450,7 +1450,8 @@ static void state_init( vrrp_rt *vsrv )
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
 		vsrv->state = VRRP_STATE_BACK;
-		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - State INIT -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+		strcpy(backup_reason,"INIT state");
+		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - INIT State -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 		if (master_ipaddr) {
 			if (strlen(backup_reason) == 0) 
 				strcpy(backup_reason,"Read packet from peer");
@@ -1662,6 +1663,37 @@ static void writestate()
 		fprintf(f, "vrrpd: %s atropos --------- Start PID %d ---------\r\n",vsrv->vif.ifname, mypid);
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information process : %d",vsrv->vif.ifname, mypid);
 		fprintf(f, "vrrpd: %s atropos information process : %d\r\n",vsrv->vif.ifname, mypid);
+
+                fprintf(f, "\r\n");
+                if (vsrv->state == 3) {
+                        vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
+                        fprintf(f, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
+                        if (strlen(master_reason) != 0){
+                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, master_reason);
+                                fprintf(f, "vrrpd: %s atropos information reason %s\r\n", vsrv->vif.ifname, master_reason);
+                        }
+                } else {
+                        vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);
+                        fprintf(f, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);
+                        if (strlen(backup_reason) != 0)
+                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, backup_reason);
+                                fprintf(f, "vrrpd: %s atropos information reason %s\r\n", vsrv->vif.ifname, backup_reason);
+                        if (vsrv->state == 2) {
+                                for (ix=0; ix <= max_monitor; ix++) {
+                                        sprintf (&statedown[24],"%d",ix);
+                                        if ((f2 = fopen(statedown, "r")) != NULL) {
+                                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information lock file %s",vsrv->vif.ifname, statedown);
+                                                fprintf(f2, "vrrpd: %s atropos information lock file %s\r\n",vsrv->vif.ifname, statedown);
+                                                fclose(f2);
+                                        }
+                                }
+                        } else {
+                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);
+                                fprintf(f, "vrrid: %s atropos information state BACKUP since %s\r\n",vsrv->vif.ifname, timenowstring);
+                        }
+                }
+                fprintf(f, "\r\n");
+
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information version: %s", vsrv->vif.ifname, VRRPD_VERSION);
 		fprintf(f, "vrrpd: %s atropos information version: %s\r\n", vsrv->vif.ifname, VRRPD_VERSION);
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information script Master: %s", vsrv->vif.ifname, upscript);
@@ -1695,33 +1727,6 @@ static void writestate()
 		}   
                 vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information delay %d",vsrv->vif.ifname, showdelay);
                 fprintf(f, "vrrpd: %s atropos information delay %d\r\n",vsrv->vif.ifname, showdelay);
-		if (vsrv->state == 3) {
-                        vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
-                        fprintf(f, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
-                        if (strlen(master_reason) != 0){
-				vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, master_reason);	
-				fprintf(f, "vrrpd: %s atropos information reason %s\r\n", vsrv->vif.ifname, master_reason);
-			}	
-		} else { 
-			vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);	
-			fprintf(f, "vrrpd: %s atropos information state BACKUP since %s\r\n",vsrv->vif.ifname, timenowstring);	
-                        if (strlen(backup_reason) != 0)
-				vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, backup_reason);	
-				fprintf(f, "vrrpd: %s atropos information reason %s\r\n", vsrv->vif.ifname, backup_reason);	
-			if (vsrv->state == 2) {
-				for (ix=0; ix <= max_monitor; ix++) {
-                			sprintf (&statedown[24],"%d",ix);
-                			if ((f2 = fopen(statedown, "r")) != NULL) {
-						vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information lock file %s",vsrv->vif.ifname, statedown);
-						fprintf(f2, "vrrpd: %s atropos information lock file %s\r\n",vsrv->vif.ifname, statedown);
-                        			fclose(f2);
-                			}       
-		        	}	       
-			} else {
-				vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);	
-				fprintf(f, "vrrid: %s atropos information state BACKUP since %s\r\n",vsrv->vif.ifname, timenowstring);	
-			}
-		}
 		vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information Virtual ID: %d",vsrv->vif.ifname, vsrv->vrid);
 		fprintf(f, "vrrpd: %s atropos information Virtual ID: %d\r\n",vsrv->vif.ifname, vsrv->vrid);
 		if (monitor){		

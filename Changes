@@ -1,6 +1,6 @@
-
+Fix: Removed all compile warnings.
 Atropos show all informations (status, time to live, etc)
-Fix return to prompt (-h ou -V) 
+Fix: bad return to prompt (-h ou -V) 
 
 04/03/2015 vrrpd 1.12
 

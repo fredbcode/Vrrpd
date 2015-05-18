@@ -45,7 +45,7 @@ char temp2[2] = "/";
 int monitor;
 int pid;
 int ix = 0;
-int max_net = 8;
+int max_mac = 6;
 // Five loop with twice SIGNAL
 int max_count = 5;
 int nb;
@@ -152,7 +152,7 @@ void fonctinfo() {
  			}
 
 
-	for (ix=0; ix < max_net; ix++) {
+	for (ix=0; ix < max_mac; ix++) {
 
 		struct  ifreq  devea;
 		int ether = ix;
@@ -168,10 +168,12 @@ void fonctinfo() {
 		{
 			printf("\n");
 			printf("eth%d Current MAC is: ",ether);
-			for (i = 0; i < max_net; i++)
+			for (i = 0; i < max_mac; i++)
 			{
-				printf("%2.2x", i[devea.ifr_hwaddr.sa_data] & 0xff);
-				
+				if (i < (max_mac - 1))
+					printf("%2.2x:", i[devea.ifr_hwaddr.sa_data] & 0xff);
+				if (i == (max_mac - 1))
+					printf("%2.2x", i[devea.ifr_hwaddr.sa_data] & 0xff);
 			}
 			printf("\n");
 		}		
