@@ -1,4 +1,4 @@
-# !/bin/sh
+#!/bin/sh
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 #
 # Date:11 Sept 2006 yh ps
@@ -8,6 +8,11 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # 
 #---------------------------------
 # Please take a look -> vrrpd client:  atropos --help
+#
+#
+# With systemd + dhcp use systemctl enable NetworkManager-wait-online.service
+#
+#
 
 horodate=$(date +%d/%m/%Y_%R)
 
