@@ -1450,7 +1450,6 @@ static void state_init( vrrp_rt *vsrv )
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
 		vsrv->state = VRRP_STATE_BACK;
-		strcpy(backup_reason,"INIT state");
 		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - INIT State -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 		if (master_ipaddr) {
 			if (strlen(backup_reason) == 0) 
@@ -1897,6 +1896,7 @@ int main( int argc, char *argv[] )
 	pidfile_write( vsrv );
         /* first lock as down */
         killvrrpd(13,vsrv->vif.ifname);
+	strcpy(backup_reason,"INIT state");
 	/* main loop */
 	while( 1 ){
 		if (monitor) {ethsup(vsrv);};
