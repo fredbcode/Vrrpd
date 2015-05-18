@@ -38,9 +38,11 @@ struct rtnl_dump_filter_arg
 
 extern int rtnl_dump_filter_l(struct rtnl_handle *rth,
 			      const struct rtnl_dump_filter_arg *arg);
-extern int rtnl_dump_filter(struct rtnl_handle *rth, rtnl_filter_t filter,
-			    void *arg1,
-			    rtnl_filter_t junk,
+
+extern int rtnl_dump_filter(struct rtnl_handle *rth,
+                            int (*filter)(struct sockaddr_nl *, struct nlmsghdr *n, void *),
+                            void *arg1,
+                            int (*junk)(struct sockaddr_nl *,struct nlmsghdr *n, void *),
 			    void *arg2);
 
 extern int rtnl_talk(struct rtnl_handle *rtnl, struct nlmsghdr *n, pid_t peer,
