@@ -1668,15 +1668,15 @@ static void writestate()
                         vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
                         fprintf(f, "vrrpd: %s atropos information state MASTER since %s",vsrv->vif.ifname, timenowstring);
                         if (strlen(master_reason) != 0){
-                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, master_reason);
-                                fprintf(f, "vrrpd: %s atropos information reason %s\r\n", vsrv->vif.ifname, master_reason);
+                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason: %s", vsrv->vif.ifname, master_reason);
+                                fprintf(f, "vrrpd: %s atropos information reason: %s\r\n", vsrv->vif.ifname, master_reason);
                         }
                 } else {
                         vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);
                         fprintf(f, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);
                         if (strlen(backup_reason) != 0)
-                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason %s", vsrv->vif.ifname, backup_reason);
-                                fprintf(f, "vrrpd: %s atropos information reason %s\r\n", vsrv->vif.ifname, backup_reason);
+                                vrrpd_log(LOG_WARNING, "vrrpd: %s atropos information reason: %s", vsrv->vif.ifname, backup_reason);
+                                fprintf(f, "vrrpd: %s atropos information reason: %s\r\n", vsrv->vif.ifname, backup_reason);
                         if (vsrv->state == 2) {
                                 for (ix=0; ix <= max_monitor; ix++) {
                                         sprintf (&statedown[24],"%d",ix);
@@ -1892,7 +1892,11 @@ int main( int argc, char *argv[] )
 	signal( SIGTTOU, signal_user );
 
 	/* try to write a pid file */
-	if( pidfile_exist( vsrv ) )	return -1;
+	if( pidfile_exist( vsrv ) ){
+		vrrpd_log(LOG_WARNING, "Socket already used for %s, exit",vsrv->vif.ifname);
+		return -1;
+	}
+
 	pidfile_write( vsrv );
         /* first lock as down */
         killvrrpd(13,vsrv->vif.ifname);
