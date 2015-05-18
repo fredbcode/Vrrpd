@@ -1893,7 +1893,7 @@ int main( int argc, char *argv[] )
 
 	/* try to write a pid file */
 	if( pidfile_exist( vsrv ) ){
-		vrrpd_log(LOG_WARNING, "Socket already used for %s, exit",vsrv->vif.ifname);
+		vrrpd_log(LOG_WARNING, "Socket already used by %s, exit",vsrv->vif.ifname);
 		return -1;
 	}
 
