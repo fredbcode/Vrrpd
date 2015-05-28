@@ -1,5 +1,4 @@
-## Vrrpd
-=====
+## Advanced Vrrpd
 
 Advanced Vrrpd: high-availability solution, easy to use and easy to configure.
 No dependency is required, it works with very low memory and CPU usage.
