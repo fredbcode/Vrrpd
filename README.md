@@ -1,10 +1,10 @@
-Vrrpd
+## Vrrpd
 =====
 
 Advanced Vrrpd: high-availability solution, easy to use and easy to configure.
 No dependency is required, it works with very low memory and CPU usage.
 
-A lightweight, fast, and free solution  
+**A lightweight, fast, and free solution**  
 
 That version has many improvements like monitoring other vrrpd processes and executing a command when changing back and forth from master to backup. 
 
@@ -38,7 +38,7 @@ vrrpd -i eth0 10.16.1.200 -v 51 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/D
 
 vrrpd -i eth1 10.17.1.200 -v 52 -M 2 -U /etc/scripts/MASTER.sh -D /etc/scripts/DOWN.sh
 
-For init script you can take a look at: https://github.com/fredbcode/Vrrpd/tree/master/scripts
+For init script you can take a look at: [github](https://github.com/fredbcode/Vrrpd/tree/master/configs)
 
 * i = eth to listen and VIP network adress (could vlan be VLAN like eth0.190) - 10.16.1.200 is the VIP shared on eth0 -
 * v = VID 51 
