@@ -567,24 +567,41 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 		return 1;
 	}
 
+	/* ok we have the same vid */
 	/* check the authentication if it is a passwd */
 	if( hd->auth_type == VRRP_AUTH_PASS ){
 		char	*pw	= (char *)ip + ntohs(ip->tot_len)
 				  -sizeof(vif->auth_data);
 		if( memcmp( pw, vif->auth_data, sizeof(vif->auth_data)) ){
 			if( vsrv->vrid == hd->vrid ){
-				vrrpd_log(LOG_WARNING,"VRRPD group: receive an invalid passwd ! \n");
-				vrrpd_log(LOG_WARNING,"Passwd: %s Passwd: %s - Vid: %d Vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
+				if ((vsrv->state = VRRP_STATE_BACK) || (vsrv->state = VRRP_STATE_INIT)){
+					vrrpd_log(LOG_WARNING,"VRRPD group: receive an invalid passwd ! \n");
+					vrrpd_log(LOG_WARNING,"passwd peer: %s passwd: %s - vid: %d from same vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
+					sleep (2);
+					kill(mypid,SIGTERM);
+				} else {
+					vrrpd_log(LOG_WARNING,"VRRPD group: receive an invalid passwd ! \n");
+					vrrpd_log(LOG_WARNING,"passwd peer: %s passwd: %s - vid: %d from same vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
+				}
 				return 2;
 			}
-			 /* check the authentication type */
-			if( vif->auth_type != hd->auth_type ){
+		}
+	} else {
+		 /* check the authentication type */
+		if( vif->auth_type != hd->auth_type ){
+			if ((vsrv->state = VRRP_STATE_BACK) || (vsrv->state = VRRP_STATE_INIT)){
+				killvrrpd(13, vsrv->vif.ifname );
+				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive an invalid passwd type from peer \n", vsrv->vrid);
+				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive a %d auth, expecting %d ! from %d \n", vsrv->vrid, vif->auth_type, hd->auth_type, hd->vrid);
+				sleep (2);
+				kill(mypid,SIGTERM);
+			} else {
 				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive an invalid passwd type \n", vsrv->vrid);
 				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive a %d auth, expecting %d ! from %d \n", vsrv->vrid, vif->auth_type, hd->auth_type, hd->vrid);
-				return 2;
 			}
-			
+			return 2;
 		}
+			
 	}
 
 	/* MAY verify that the IP address(es) associated with the VRID are
@@ -1170,6 +1187,8 @@ static int vrrp_read( vrrp_rt *vsrv, char *buf, int buflen )
                 		len = 0;}
 			else {
 				len = 2 ;
+				vsrv->state = VRRP_STATE_BACK;
+				vsrv->wantstate = VRRP_STATE_BACK;
 			}
 		}
 	
@@ -1476,7 +1495,7 @@ static void state_back( vrrp_rt *vsrv )
 	struct iphdr	*iph	= (struct iphdr *)buf;
 	vrrp_pkt	*hd	= (vrrp_pkt *)((char *)iph + (iph->ihl<<2));
 
-        if ((len == 2) && (vsrv->wantstate != VRRP_STATE_MAST)) {
+        if ((len == 2) && (vsrv->state != VRRP_STATE_MAST)) {
         	vsrv->wantstate = VRRP_STATE_INIT;
         	vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: There is already a master with same VID %d and another password !", vsrv->vrid, vsrv->vif.ifname, vsrv->vrid);
         	sleep (2);

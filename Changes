@@ -1,4 +1,5 @@
-Fix: Removed all compile warnings.
+Vrrpd now can't start without same ID parameters 
+Fix: Remove all compile warnings.
 Atropos show all informations (status, time to live, etc)
 Fix: bad return to prompt (-h ou -V) 
 
