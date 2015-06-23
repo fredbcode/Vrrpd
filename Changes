@@ -1,4 +1,6 @@
-Vrrpd now can't start without same ID parameters 
+23/06/2015 vrrpd 1.13
+
+Vrrpd security: Daemon cannot start with the same VRID than other - and different password - 
 Fix: Remove all compile warnings.
 Atropos show all informations (status, time to live, etc)
 Fix: bad return to prompt (-h ou -V) 
