@@ -120,7 +120,7 @@ void fonctinfo() {
                                                         kill(pid,SIGUSR1);
 							char vrrp_tmp[FILENAME_MAX]="/tmp/";
 							sleep(1);
-						        snprintf(temp, sizeof(temp), "vrrpstate%d", pid);
+						        snprintf(temp, sizeof(temp), ".vrrpstate%d", pid);
         						strcat(vrrp_tmp, temp);
         						if ((f = fopen(vrrp_tmp, "r")) != NULL){
        								while (fgets(data, DATA_MAX, f) != NULL) 
