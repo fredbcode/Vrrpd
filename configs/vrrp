@@ -18,6 +18,8 @@ conf=/etc/vrrp.conf
 
 if [ ! -f $conf ]; then
 	log_daemon_msg "No configuration file"
+	RET="$?"
+        log_end_msg $RET
 	exit 0
 fi 
 
@@ -26,47 +28,43 @@ start() {
         pidof -x vrrpd > /dev/null
         if [ $?  = 1 ]; then
         log_daemon_msg "Start vrrpd .."
- 	echo "\n"	
 	$conf > /dev/null
 	log_daemon_msg "Start: done"
- 	echo "\n"	
         else
-        log_daemon_msg "vrrpd was already started ..."
- 	echo "\n"	
-        log_daemon_msg "vrrp pid: $pidvrrpd"
- 	echo "\n"	
+        	log_daemon_msg "vrrpd was already started ..."
+        	log_daemon_msg "vrrp pid: $pidvrrpd"
         fi
+	RET="$?"
+       	log_end_msg $RET
 }
 
 stop() {
         log_daemon_msg "."
         pidof -x vrrpd > /dev/null
         if [ $? = 0 ]; then
-        log_daemon_msg "Stop vrrpd .."
- 	echo "\n" 	
+        log_action_begin_msg "Stop vrrpd .."
         cnt=0
 	killall vrrpd
-	log_daemon_msg "Exit Vrrpd: State backup and Shutting down"
- 	echo "\n"	
+	log_action_begin_msg "Exit Vrrpd: State backup and Shutting down PID: " && pidof vrrpd
         while pidof vrrpd >/dev/null
         	do
         	cnt=`expr $cnt + 1`
                         if [ $cnt -gt 60 ]
                         then
 				log_daemon_msg "Can't stop vrrpd ?"
+				RET="$?"
+       				log_end_msg $RET
 				exit 0
                         fi
                         sleep 1 
-			log_daemon_msg "Please Wait" "$cnt : Pid en cours de fonctionnement " && pidof vrrpd
+			log_action_begin_msg "Please Wait" "$cnt : Pid en cours de fonctionnement " && pidof vrrpd
                 done
-
- 	echo "\n" 	
         log_daemon_msg "stop: done"
- 	echo "\n" 	
         else
-        log_daemon_msg "vrrpd was already stopped"
- 	echo "\n" 	
+	        log_daemon_msg "vrrpd was already stopped"
         fi
+	RET="$?"
+       	log_end_msg $RET
 }
 
 case "$1" in
@@ -83,7 +81,8 @@ case "$1" in
 	;;
  *)
         log_daemon_msg "Usage: /etc/init.d/vrrp {start|stop|restart}" >&2
-	echo "\n"
+	RET="$?"
+       	log_end_msg $RET
         exit 1
         ;;
 esac
