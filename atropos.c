@@ -37,7 +37,7 @@ typedef u_int8_t u8;
 #endif
 #define DATA_MAX 10000
 
-char version1[10] = "0.80";
+char version1[10] = "0.90";
 char buff[80];
 char data[DATA_MAX];
 char pidend[6] = ".pid";
@@ -188,7 +188,6 @@ void fonctinfo() {
 static void signal_end( int nosig )
 {
 	fprintf(stdout,"\n");
-	fprintf(stdout,"Don't use \"CTRL+C\"\n");
 	signal( SIGINT, signal_end );
 	return;
 }
@@ -280,8 +279,7 @@ int main(int argc, char **argv)
 	if (backup) {
 		snprintf( PidDir, sizeof(PidDir), "%s", VRRP_PIDDIR_DFL );
 		fprintf(stdout,"VRRPD BACKUP\n");
-		fprintf(stdout,"Please wait\n");
-		fprintf(stdout,"Don't use \"CTRL+C\"\n");
+		fprintf(stdout,"PLEASE WAIT\n");
 		for (ix = 0; ix <= max_count; ix++) {
 				fprintf(stderr, "\n");
 				fprintf(stderr,"Stage: %d|%d:  ", ix, max_count);
@@ -346,7 +344,7 @@ int main(int argc, char **argv)
 		fprintf(stdout,"\n");
 		fprintf(stdout,"Atropos %s frederic Bourgeois http://numsys.eu\n", version1);
 		fprintf(stdout,"\n");
-		fprintf(stdout,"atropos --backup 		Be backup (caution: Don't use with priority !)\n");
+		fprintf(stdout,"atropos --backup 		Be backup (caution: Do not use with priority !)\n");
 		fprintf(stdout,"atropos --reduce 		Reduce priority dynamically priority -10\n");
 		fprintf(stdout,"				If vrrpd run with -z : Set the priority after SIGTTIN (not decrement as default)\n");
 		fprintf(stdout,"atropos --increase 		Increase priority dynamically +10 \n");
