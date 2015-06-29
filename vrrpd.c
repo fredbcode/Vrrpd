@@ -262,7 +262,7 @@ static int pidfile_write( vrrp_rt *vsrv )
 static void pidfile_rm( vrrp_rt *vsrv )
 {
 	unlink( pidfile_get_name(vsrv) );
-        char vrrp_tmp[FILENAME_MAX]="/tmp/";
+        char vrrp_tmp[FILENAME_MAX] = VRRP_PIDDIR_DFL;
         char temp[FILENAME_MAX+1];
 
 	for (ix=0; ix <= max_monitor; ix++) {
@@ -1671,7 +1671,7 @@ static void writestate()
 	vrrp_rt	*vsrv = &glob_vsrv;
 	vrrp_if *vif = &vsrv->vif;
 	mypid = getpid();
-	char vrrp_tmp[FILENAME_MAX]="/tmp/";
+	char vrrp_tmp[FILENAME_MAX]= VRRP_PIDDIR_DFL;
 	char temp[FILENAME_MAX+1];
     	snprintf(temp, sizeof(temp), ".vrrpstate%d", mypid);
 	strcat(vrrp_tmp, temp);
@@ -1733,7 +1733,7 @@ static void writestate()
 		}
 
 	} else { 
-		fprintf(f, "vrrpd: %s atropos information WARNING critical: /tmp is not writable\r\n", vsrv->vif.ifname);
+		fprintf(f, "vrrpd: %s atropos information WARNING critical: temp directory is not writable\r\n", vsrv->vif.ifname);
 	}
 	fprintf(f, "vrrpd: %s atropos --------- End Pid %d --------\n\r",vsrv->vif.ifname, mypid);
 	fclose(f);

@@ -118,7 +118,7 @@ void fonctinfo() {
                                                         fclose(f);
                                                         int pid = atoi(buff);
                                                         kill(pid,SIGUSR1);
-							char vrrp_tmp[FILENAME_MAX]="/tmp/";
+							char vrrp_tmp[FILENAME_MAX] = VRRP_PIDDIR_DFL;
 							sleep(1);
 						        snprintf(temp, sizeof(temp), ".vrrpstate%d", pid);
         						strcat(vrrp_tmp, temp);
