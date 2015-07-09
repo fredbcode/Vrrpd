@@ -1,5 +1,5 @@
 
-
+ARM (linux) compatibility
 Remove information files from tmp (can be changed in vrrpd.h VRRP_PIDDIR_DFL) 
 
 23/06/2015 vrrpd 1.13
