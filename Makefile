@@ -26,7 +26,7 @@ vrrpd : $(VRRPD_OBJS)
 	$(CC) $(PROF_OPT) -o $@ $^ -lrt $(LINKLIB)
 
 atropos:$(ATROPOS_OBJS)
-	$(CC) $(PROF_OPT) -o $@ -lrt $^
+	$(CC) $(PROF_OPT) -o $@ $^ -lrt
 
 vrrpd.o: vrrpd.h 
 libnetlink.o: libnetlink.h
