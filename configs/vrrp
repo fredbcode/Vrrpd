@@ -8,6 +8,9 @@
 # Short-Description: vrrp
 # Description:       HA
 ### END INIT INFO
+
+# INIT SCRIPT 
+
 . /lib/lsb/init-functions
 
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
