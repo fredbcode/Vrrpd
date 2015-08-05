@@ -57,7 +57,7 @@ ifconfig eth0:0 down
 
 Of course, you can put whatever you like.
 
-The virtual MAC address is automaticaly generated
+The virtual MAC address is automatically generated
 
 So, In our case there are three adresses on Master
 
