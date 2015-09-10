@@ -34,10 +34,10 @@ case $saisie
 		cp vrrpd /usr/sbin/ 2>/dev/null
 		cp atropos /usr/sbin/ 2>/dev/null
 		cp scripts/vrrp /etc/init.d/vrrp 2>/dev/null
-		mkdir -p /etc/VRRP 2>/dev/null
-		cp scripts/vrrp_on.sh /etc/VRRP/ 2>/dev/null
-		cp -Rf scripts/VRRP/* /etc/VRRP 2>/dev/null
-		ln -s /etc/VRRP/vrrp_on.sh /etc/vrrp.conf 2>/dev/null
+		mkdir -p /etc/vrrpd 2>/dev/null
+		cp scripts/vrrp_on.sh /etc/vrrpd/ 2>/dev/null
+		cp -Rf scripts/vrrpd/* /etc/vrrpd 2>/dev/null
+		ln -s /etc/vrrpd/vrrp_on.sh /etc/vrrp.conf 2>/dev/null
 		update-rc.d vrrp defaults 2>/dev/null
 		;;
 			 
