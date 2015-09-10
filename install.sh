@@ -10,8 +10,8 @@ echo ""
 echo ""
 echo ""
 echo ""
-echo "			1) Compilation (already compiled for debian etch i586) "
-echo "			2) Installation"
+echo "			1) Compilation 
+echo "			2) Compilation & Installation
 echo ""
 echo ""
 read saisie
@@ -33,12 +33,20 @@ case $saisie
 		fi
 		cp vrrpd /usr/sbin/ 2>/dev/null
 		cp atropos /usr/sbin/ 2>/dev/null
-		cp scripts/vrrp /etc/init.d/vrrp 2>/dev/null
+		cp configs/vrrp /etc/init.d/vrrp 2>/dev/null
 		mkdir -p /etc/vrrpd 2>/dev/null
-		cp scripts/vrrp_on.sh /etc/vrrpd/ 2>/dev/null
-		cp -Rf scripts/vrrpd/* /etc/vrrpd 2>/dev/null
+		cp configs/vrrp_on.sh /etc/vrrpd/ 2>/dev/null
+		cp -Rf configs/vrrpd/* /etc/vrrpd 2>/dev/null
 		ln -s /etc/vrrpd/vrrp_on.sh /etc/vrrp.conf 2>/dev/null
 		update-rc.d vrrp defaults 2>/dev/null
+		echo "Enabling rclevel for vrrp" 
+		
+		update-rc.d vrrp defaults 2>/dev/null
+		if [ -d /run/systemd/system ] ; then
+		        cp configs/vrrp.services
+           		systemctl enable vrrp 
+		fi
+		
 		;;
 			 
         *)      # Tous les autres cas
