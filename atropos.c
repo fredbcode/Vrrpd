@@ -42,7 +42,7 @@ char version1[10] = "1.0";
 char buff[80];
 char data[DATA_MAX];
 char pidend[6] = ".pid";
-char temp2[2] = "/";
+char separetepath[2] = "/";
 int monitor;
 int pid;
 int ix = 0;
@@ -111,7 +111,7 @@ void fonctinfo() {
                 	while( NULL != ( fichier = readdir( currentDir ))) {
                         	if(!strncmp(namepid, fichier->d_name, 6) ){
                                 	strcpy(finalfile,PidDir);
-                                        strcat(finalfile,temp2);
+                                        strcat(finalfile,separetepath);
                                         strcat(finalfile,fichier->d_name);
                                         	if ((f = fopen(finalfile, "rb")) != NULL){
                                                 	fgets(buff, sizeof(buff), f);
@@ -120,15 +120,15 @@ void fonctinfo() {
                                                         kill(pid,SIGUSR1);
 							char vrrp_tmp[FILENAME_MAX] = VRRP_PIDDIR_DFL;
 							sleep(1);
-						        snprintf(temp, sizeof(temp), "/.vrrpstate%d", pid);
-        						strcat(vrrp_tmp, temp);
+							snprintf(temp, sizeof(temp), "/.vrrpstate%d", pid);
+							strcat(vrrp_tmp, temp);
         						if ((f = fopen(vrrp_tmp, "r")) != NULL){
        								while (fgets(data, DATA_MAX, f) != NULL) 
         							{
             								printf("%s", data);
         							}
 							 } else {
-                               						fprintf(stdout, "VRRP PID %d File %s STATE NOT FOUND\n", pid, vrrp_tmp);
+                               						fprintf(stdout, "VRRP PID %d File %s STATE NOT FOUND \n", pid, vrrp_tmp);
 								}
 						 }
                                                         finalfile[0]='\0';
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
                         	while( NULL != ( fichier = readdir( currentDir ))) {
                         		if(!strncmp(namepid, fichier->d_name, 6) ){
                                         	strcpy(finalfile,PidDir);
-                                                strcat(finalfile,temp2);
+                                                strcat(finalfile,separetepath);
                                                 strcat(finalfile,fichier->d_name);
                                                 if ((f = fopen(finalfile, "rb")) != NULL){
                                                        	fgets(buff, sizeof(buff), f);
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
                                 while( NULL != ( fichier = readdir( currentDir ))) {
                                         if(!strncmp(namepid, fichier->d_name, 6) ){
                                                 strcpy(finalfile,PidDir);
-                                                strcat(finalfile,temp2);
+                                                strcat(finalfile,separetepath);
                                                 strcat(finalfile,fichier->d_name);
                                                 if ((f = fopen(finalfile, "rb")) != NULL){
                                                         fgets(buff, sizeof(buff), f);
@@ -295,7 +295,7 @@ int main(int argc, char **argv)
                                 	while( NULL != ( fichier = readdir( currentDir ))) {
                                         	if(!strncmp(namepid, fichier->d_name, 6) ){
                                                 	strcpy(finalfile,PidDir);
-                                                	strcat(finalfile,temp2);
+                                                	strcat(finalfile,separetepath);
                                                 	strcat(finalfile,fichier->d_name);
                                                 	if ((f = fopen(finalfile, "rb")) != NULL){
                                                         	fgets(buff, sizeof(buff), f);
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
                                         while( NULL != ( fichier = readdir( currentDir ))) {
                                                 if(!strncmp(namepid, fichier->d_name, 6) ){
                                                         strcpy(finalfile,PidDir);
-                                                        strcat(finalfile,temp2);
+                                                        strcat(finalfile,separetepath);
                                                         strcat(finalfile,fichier->d_name);
                                                         if ((f = fopen(finalfile, "rb")) != NULL){
                                                                 fgets(buff, sizeof(buff), f);

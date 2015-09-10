@@ -79,9 +79,12 @@ static int mypid;
 char buff[80];
 int max_monitor = 9;
 char pidend[6] = ".pid";
-char statetemp[18] = "/vrrpdstatedown_";
-char statetemp2[FILENAME_MAX+1];
-char temp2[2] = "/";
+
+// Pathe gerenrated in main function
+char statefilepath[18] = "/vrrpdstatedown_";
+char pidfilepath[FILENAME_MAX+1];
+char separetepath[2] = "/";
+
 int monitor = 0;
 int monitortemp = 0;
 int pid = 0;
@@ -116,31 +119,31 @@ void killvrrpd(int killnu,char *ifname)
 	ix=0;
 
 // Search process pid //
+
 	DIR *currentDir;
        	struct dirent *fichier;
        	if( NULL == ( currentDir = opendir(PidDir))) {
         	perror( "opendir()" );
        	} else {	           									
-	while( NULL != ( fichier = readdir( currentDir ))) {
-		if(!strncmp(namepid, fichier->d_name, 6) ){
-		strcpy(statetemp2,PidDir);	
-		strcat(statetemp2,temp2);								
-		strcat(statetemp2,fichier->d_name);
-		if ((f = fopen(statetemp2, "rb")) != NULL){
-	         	fgets(buff, sizeof(buff), f);
-			fclose(f);
-			int pid2 = atoi(buff);
-			if (ix < max_monitor){
-				pidtab[ix] = pid2;
-				ix++;
-			}
-			statetemp2[0]='\0';
-			
+		while( NULL != ( fichier = readdir( currentDir ))) {
+			if(!strncmp(namepid, fichier->d_name, 6) ){
+				if ((f = fopen(pidfilepath, "rb")) != NULL){
+					strcat(statefilepath,fichier->d_name);
+	         			fgets(buff, sizeof(buff), f);
+					fclose(f);
+					int pid2 = atoi(buff);
+					if (ix < max_monitor){
+						pidtab[ix] = pid2;
+						ix++;
+					}
+					statefilepath[0]='\0';
+				}
 			}
 		}
+		closedir(currentDir);
 	}
-	closedir(currentDir);
-	}
+
+/* Search another process with Backup state */
 
 	for (ix=0; ix <= max_monitor; ix++) {
 		sprintf (&statedown[24],"%d",ix);
@@ -248,9 +251,6 @@ static int pidfile_write( vrrp_rt *vsrv )
 	}
 	fprintf( fOut, "%d\n", getpid() );
 	fclose( fOut );
-	// create state path 
-	strcpy(statedown,PidDir);
-	strcat(statedown,statetemp);
 	return(0);
 }
 
@@ -1673,7 +1673,7 @@ static void writestate()
 	mypid = getpid();
 	char vrrp_tmp[FILENAME_MAX]= VRRP_PIDDIR_DFL;
 	char temp[FILENAME_MAX+1];
-    	snprintf(temp, sizeof(temp), ".vrrpstate%d", mypid);
+    	snprintf(temp, sizeof(temp), "/.vrrpstate%d", mypid);
 	strcat(vrrp_tmp, temp);
 
 	if ((f = fopen(vrrp_tmp, "w+")) != NULL){
@@ -1688,16 +1688,8 @@ static void writestate()
                         }
                 } else {
                         fprintf(f, "vrrpd: %s atropos information state BACKUP since %s",vsrv->vif.ifname, timenowstring);
-                        if (strlen(backup_reason) != 0)
+                        if (strlen(backup_reason) != 0) {
                                 fprintf(f, "vrrpd: %s atropos information reason: %s\r\n", vsrv->vif.ifname, backup_reason);
-                        if (vsrv->state == 2) {
-                                for (ix=0; ix <= max_monitor; ix++) {
-                                        sprintf (&statedown[24],"%d",ix);
-                                        if ((f2 = fopen(statedown, "r")) != NULL) {
-                                                fprintf(f2, "vrrpd: %s atropos information lock file %s\r\n",vsrv->vif.ifname, statedown);
-                                                fclose(f2);
-                                        }
-                                }
                         } else {
                                 fprintf(f, "vrrid: %s atropos information state BACKUP since %s\r\n",vsrv->vif.ifname, timenowstring);
                         }
@@ -1733,7 +1725,7 @@ static void writestate()
 		}
 
 	} else { 
-		fprintf(f, "vrrpd: %s atropos information WARNING critical: temp directory is not writable\r\n", vsrv->vif.ifname);
+		fprintf(f, "vrrpd: %s atropos information WARNING critical: pid directory is not writable\r\n", vsrv->vif.ifname);
 	}
 	fprintf(f, "vrrpd: %s atropos --------- End Pid %d --------\n\r",vsrv->vif.ifname, mypid);
 	fclose(f);
@@ -1843,6 +1835,15 @@ int main( int argc, char *argv[] )
 	openlog ("vrrpd", LOG_CONS | LOG_PID | LOG_NDELAY, LOG_LOCAL1);
 	vrrpd_log(LOG_WARNING, "vrrpd version %s starting...\n", VRRPD_VERSION);
 	snprintf( PidDir, sizeof(PidDir), "%s", VRRP_PIDDIR_DFL );
+	
+	/* create statedown file path */
+	strcpy(statedown,PidDir);
+	strcpy(statedown,separetepath);
+	strcat(statedown,statefilepath);
+
+	/* create statedir directory */
+	strcpy(pidfilepath,PidDir);
+	strcat(statefilepath,pidfilepath);
 	
 	/* add the virtual server ip */
 	for( ; argv[argc]; argc++ ){
