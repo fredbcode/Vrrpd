@@ -1,5 +1,6 @@
 #!/bin/sh
 PATH=/bin:/usr/bin:/sbin:/usr/sbin
+a = 0
 
 clear
  
@@ -10,16 +11,15 @@ echo ""
 echo ""
 echo ""
 echo ""
-echo "			1) Compilation 
-echo "			2) Compilation & Installation
+echo "			1) Compilation						" 
+echo "			2) Compilation & Installation 				"
 echo ""
 echo ""
 read saisie
-a=0 
 case $saisie
-        in
+	in
          1)
-                echo "			compilation" 
+                echo "compilation" 
 		make clean
 		make
 		;;
@@ -31,6 +31,8 @@ case $saisie
 			echo "Error: Installation: requires package psmisc (killal)"
 			exit 0
 		fi
+		make clean
+		make
 		cp vrrpd /usr/sbin/ 2>/dev/null
 		cp atropos /usr/sbin/ 2>/dev/null
 		cp configs/vrrp /etc/init.d/vrrp 2>/dev/null
@@ -42,7 +44,8 @@ case $saisie
 		echo "Enabling rclevel for vrrp" 
 		
 		update-rc.d vrrp defaults 2>/dev/null
-		if [ -d /run/systemd/system ] ; then
+		if [ -d /run/systemd/system ] 
+		then
 		        cp configs/vrrp.services
            		systemctl enable vrrp 
 		fi
