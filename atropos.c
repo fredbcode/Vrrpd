@@ -178,7 +178,7 @@ void fonctinfo() {
 	}
 	printf("\n");
         char command[50];
-	snprintf(command,sizeof command,"grep state %s/.*vrrpstate*",PidDir);
+	snprintf(command,sizeof command,"grep -sh state %s/.*vrrpstate*",PidDir);
 	system(command);
 
 	printf("\n");
