@@ -151,6 +151,7 @@ void fonctinfo() {
  		}
 
 
+	printf("\n");
 	for (ix=0; ix < max_mac; ix++) {
 		struct  ifreq  devea;
 		int ether = ix;
@@ -164,7 +165,6 @@ void fonctinfo() {
 		sprintf(devea.ifr_name, "eth%d", ether);
 		if (ioctl(s, SIOCGIFHWADDR, &devea) == 0)
 		{
-			printf("\n");
 			printf("eth%d Current MAC is: ",ether);
 			for (i = 0; i < max_mac; i++)
 			{
