@@ -1,4 +1,6 @@
 
+Code cleaning
+Atropos: Improve information 
 ARM (linux) compatibility
 Remove information files from tmp (can be changed in vrrpd.h VRRP_PIDDIR_DFL) 
 
