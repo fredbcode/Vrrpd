@@ -181,6 +181,9 @@ void fonctinfo() {
 	snprintf(command,sizeof command,"grep -sh state %s/.*vrrpstate*",PidDir);
 	system(command);
 
+	snprintf(command,sizeof command,"rm %s/.*vrrpstate*",PidDir);
+	system(command);
+
 	printf("\n");
 	fprintf(stdout, "Be careful, Atropos doesn't show virtual mac address of vlan interface");
 	printf("\n");

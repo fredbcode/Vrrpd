@@ -186,15 +186,13 @@ void killvrrpd(int killnu,char *ifname)
 						if (pidtab[ix] == pid) {
 							pidtab[ix] = 0;
 						}
-					}	
-						
-					if ( vsrv->state != VRRP_STATE_BACK ){
-						kill(mypid,SIGUSR2);
-						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: Going to Backup state my PID: %d ",vsrv->vrid, ifname, mypid);
-
-					} else {
-						vsrv->wantstate = VRRP_STATE_INIT;
-						vsrv->state = VRRP_STATE_INIT;												
+				}
+				if ( vsrv->state != VRRP_STATE_BACK ){
+					kill(mypid,SIGUSR2);
+					vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: Going to Backup state my PID: %d ",vsrv->vrid, ifname, mypid);
+				} else {
+					vsrv->wantstate = VRRP_STATE_INIT;
+					vsrv->state = VRRP_STATE_INIT;												
 					}
 				}
 			}
@@ -205,8 +203,8 @@ void killvrrpd(int killnu,char *ifname)
 /* Now action ! You shall not pass ! */
 
 	for (ix = 0 ; ix < max_monitor ; ix++) {
-		sleep(1);
 		if ((pidtab[ix] != 0) && (monitor)) {
+			sleep(1);
 			vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: Send BACKUP STATE to VRRPD process PID: %d",vsrv->vrid, ifname, pidtab[ix]);
 			kill(pidtab[ix],SIGUSR2);
 		}	
@@ -1200,30 +1198,36 @@ int ethsup(vrrp_rt *vsrv)
 	int skfd = -1;
 	char *ifname;
 	ifname = vsrv->vif.ifname;
-        char buf[80];
-	char ch[4];
+        char buf[2];
+	char ch[2];
+	int buf1;
+	int ch1;
 
 	// Ugly but slowly ...
 	nb=rand() % (maxrand+1);
 
 	if (nb == 1) {
-		FILE * child_process = popen("ps -e |grep vrrpd | wc -l", "r");
+		FILE * child_process = popen("pidof vrrpd | wc -w", "r");
 		fgets(buf, sizeof(buf), child_process);
 		pclose(child_process);
+
+		buf1 = atoi(buf);
+		sprintf (ch, "%d", monitor);
+		ch1 = atoi(ch);
+
 		if (child_process == NULL) {
 			vrrpd_log(LOG_WARNING,"Could not open pipe:\n");
 		}
-		sprintf (ch, "%d", monitor);
 		/* not at start */ 
 		if ( vsrv->state != VRRP_STATE_INIT) {
 				/* First try wrong ? */
-				if (strcmp(buf,ch) < 0 ) {
+				if ( buf1 != ch1 ) {
 					sleep(2);
-					FILE * child_process = popen("ps -e |grep vrrpd | wc -l", "r");
+					FILE * child_process = popen("pidof vrrpd | wc -w", "r");
 					fgets(buf, sizeof(buf), child_process);
 					pclose(child_process);
-					if (strcmp(buf,ch) < 0 ) {
-						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING %s vrrpd run, monitor = %s", vsrv->vrid, ifname, buf, ch);
+					if ( buf1 != ch1 ) {
+						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING %d vrrpd run, monitor = %d", vsrv->vrid, ifname, buf1, ch1);
 						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: Exit Vrrpd", vsrv->vrid, ifname );
 						kill(mypid,15);
 					}	
@@ -1263,7 +1267,7 @@ int ethsup(vrrp_rt *vsrv)
 		close(skfd);
 		if (retval == 1)
 			{
-			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Link down %s\n",vsrv->vrid, ifname, ifname);
+			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Link down %s (state backup)",vsrv->vrid, ifname, ifname);
                         if (strlen(backup_reason) == 0)
                                 strcpy(backup_reason,"Network link down");
 			killvrrpd(12,ifname);
@@ -1357,11 +1361,12 @@ static void state_goto_master( vrrp_rt *vsrv )
                                   	vsrv->wantstate = VRRP_STATE_BACK;
                                        	vsrv->state = VRRP_STATE_INIT;
 				} else {
-					vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: Want to be master -> Another vrrpd with state Backup : %s", vsrv->vrid, vif->ifname, statedownfilepath);
+					if (strcmp(backup_reason,"INIT state") != 0) 
+						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: Want to be master -> But another vrrpd process is state Backup : %s", vsrv->vrid, vif->ifname, statedownfilepath);
 					vsrv->wantstate = VRRP_STATE_BACK;
+	 				vsrv->state = VRRP_STATE_INIT;
 					if (strlen(backup_reason) == 0)
 						strcpy(backup_reason,"Another vrrpd with state Backup");
-	 				vsrv->state = VRRP_STATE_INIT;
 				}
 			}	
 		}
@@ -1460,7 +1465,7 @@ static void state_init( vrrp_rt *vsrv )
 		int delay = 3*vsrv->adver_int + VRRP_TIMER_SKEW(vsrv);
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
 		vsrv->state = VRRP_STATE_BACK;
-		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - INIT State -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - INIT State (backup) -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 		if (master_ipaddr) {
 			if (strlen(backup_reason) == 0) 
 				strcpy(backup_reason,"Read packet from peer");
@@ -1497,8 +1502,6 @@ static void state_back( vrrp_rt *vsrv )
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
 		vsrv->wantstate = 0;
-		if (strlen(master_reason) == 0)
-			strcpy(backup_reason,"Priority or manual switch (atropos --backup)");
 		state_goto_master( vsrv );
 		return;
 	}
