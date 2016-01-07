@@ -113,12 +113,12 @@ void killvrrpd(int killnu,char *ifname)
 {
 	vrrp_rt	*vsrv = &glob_vsrv;
 	char namepid[FILENAME_MAX+1]="vrrpd_";
+	char pidfilepath_final[FILENAME_MAX+1]="";
+
 	int pidtab[max_monitor];
 	// Tab with 0 value 
 	for (ix = 0 ; ix < max_monitor; ix++)
 	 	pidtab[ix] = 0;
-
-	ix=0;
 
 // Search process pid //
 
@@ -126,11 +126,16 @@ void killvrrpd(int killnu,char *ifname)
        	struct dirent *fichier;
        	if( NULL == ( currentDir = opendir(PidDir))) {
         	perror( "opendir()" );
-       	} else {	           									
+       	} else {
+		ix = 0;	           									
 		while( NULL != ( fichier = readdir( currentDir ))) {
 			if(!strncmp(namepid, fichier->d_name, 6) ){
-				if ((f = fopen(pidfilepath, "rb")) != NULL){
-					strcat(statefilepath,fichier->d_name);
+				strcpy(pidfilepath_final,pidfilepath);
+				strcat(pidfilepath_final,"/");
+				strcat(pidfilepath_final,fichier->d_name);
+				// ok we found vrrpd pid file
+				if ((f = fopen(pidfilepath_final, "rb")) != NULL){
+					//strcat(statefilepath,fichier->d_name);
 	         			fgets(buff, sizeof(buff), f);
 					fclose(f);
 					int pid2 = atoi(buff);
@@ -138,7 +143,6 @@ void killvrrpd(int killnu,char *ifname)
 						pidtab[ix] = pid2;
 						ix++;
 					}
-					statefilepath[0]='\0';
 				}
 			}
 		}
@@ -146,71 +150,69 @@ void killvrrpd(int killnu,char *ifname)
 	}
 
 /* Search another process with Backup state */
-
-	for (ix=0; ix <= max_monitor; ix++) {
-		sprintf (&statedownfilepath[24],"%d",ix);
-/* LOCK VRRPD PROCESS */
-
-		/* Backup myself */
-		if (killnu == 13){
+//	if (killnu == 12){
+		for (ix=0; ix <= max_monitor; ix++) {
+			sprintf (&statedownfilepath[24],"%d",ix);
+/* AT FIRST LOCK MY VRRPD PROCESS */
+			/* Backup myself */
 			/* DON'T REMOVE, DOUBLE "IF" AVOID UNDE FILES */
 			if ((f = fopen(statedownfilepath, "rb")) == NULL){
 				if ((strlen(globalstatedown) == 0)){
 					if (monitor){
 						f = fopen(statedownfilepath,"w");
-                        			fprintf(f, "%d", mypid );
-						killnu = 12;
+                       				fprintf(f, "%d", mypid );
 						/* Now record my previous state */
 						strcpy(globalstatedown,statedownfilepath);
-			 			fclose(f);
+		 				fclose(f);
 					}
 					vsrv->wantstate = VRRP_STATE_INIT;
 					vsrv->state = VRRP_STATE_INIT;
-					return;
+					/* Killnu = 12 only at start */
+					if (killnu == 12){
+						return;
+					}
 				}
 			} else {
 				fclose(f);
 			}
-		
 		}
-		if (killnu != 13) {
-			/* There is a already a process with a lock ? */
-			if ((f = fopen(statedownfilepath, "rb")) != NULL) {
-				fgets(buff, sizeof(buff), f);
-				fclose(f);
-				int pid = atoi(buff);
-				/* Another pid ? Switch to backup  */
-				if (pid != mypid){
-					/* we remove process already backup */
-					for (ix = 0 ; ix < max_monitor; ix++){
-						if (pidtab[ix] == pid) {
-							pidtab[ix] = 0;
-						}
-				}
-				if ( vsrv->state != VRRP_STATE_BACK ){
-					kill(mypid,SIGUSR2);
-					vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: Going to Backup state my PID: %d ",vsrv->vrid, ifname, mypid);
-				} else {
-					vsrv->wantstate = VRRP_STATE_INIT;
-					vsrv->state = VRRP_STATE_INIT;												
-					}
+//	}
+
+/* Now action ! You shall not pass ! */
+	
+	for (ix = 0 ; ix < max_monitor ; ix++) {
+		sprintf (&statedownfilepath[24],"%d",ix);
+		if ((f = fopen(statedownfilepath, "rb")) != NULL) {
+			fgets(buff, sizeof(buff), f);
+			fclose(f);
+			int pid = atoi(buff);
+			/* Another pid ? Switch to backup  */
+			for (nb = 0; nb < max_monitor; nb++){
+				/* we remove the process if already backup */
+				if ((pidtab[nb] == pid) && (pidtab[nb] != mypid)) {
+					pidtab[nb] = 0;
 				}
 			}
-
 		}
-/* End of loop all process found */
 	}
-/* Now action ! You shall not pass ! */
+
+/* send kill signal to master process */
+/* Kill the others */
 
 	for (ix = 0 ; ix < max_monitor ; ix++) {
-		if ((pidtab[ix] != 0) && (monitor)) {
-			sleep(1);
-			vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: Send BACKUP STATE to VRRPD process PID: %d",vsrv->vrid, ifname, pidtab[ix]);
-			kill(pidtab[ix],SIGUSR2);
-		}	
+        	if ((pidtab[ix] != 0) && (pidtab[ix] != mypid))
+        		kill(pidtab[ix],SIGUSR2);
+	}
+
+/* Lock myself */
+
+	if ( vsrv->state == VRRP_STATE_MAST ){
+        	killvrrpd(12,vsrv->vif.ifname);
+       		vsrv->wantstate = VRRP_STATE_BACK;
+                vsrv->state = VRRP_STATE_INIT;
+	}
 
 
-        }
 
 }
 
@@ -1207,7 +1209,7 @@ int ethsup(vrrp_rt *vsrv)
 	nb=rand() % (maxrand+1);
 
 	if (nb == 1) {
-		FILE * child_process = popen("pidof vrrpd | wc -w", "r");
+		FILE * child_process = popen("pgrep vrrpd | wc -w", "r");
 		fgets(buf, sizeof(buf), child_process);
 		pclose(child_process);
 
@@ -1220,13 +1222,13 @@ int ethsup(vrrp_rt *vsrv)
 		}
 		/* not at start */ 
 		if ( vsrv->state != VRRP_STATE_INIT) {
-				/* First try wrong ? */
-				if ( buf1 != ch1 ) {
+				/* First try maybe wrong ? */
+				if ( buf1 < ch1 ) {
 					sleep(2);
-					FILE * child_process = popen("pidof vrrpd | wc -w", "r");
+					FILE * child_process = popen("pgrep vrrpd | wc -w", "r");
 					fgets(buf, sizeof(buf), child_process);
 					pclose(child_process);
-					if ( buf1 != ch1 ) {
+					if ( buf1 < ch1 ) {
 						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING %d vrrpd run, monitor = %d", vsrv->vrid, ifname, buf1, ch1);
 						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: Exit Vrrpd", vsrv->vrid, ifname );
 						kill(mypid,15);
@@ -1268,9 +1270,8 @@ int ethsup(vrrp_rt *vsrv)
 		if (retval == 1)
 			{
 			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Link down %s (state backup)",vsrv->vrid, ifname, ifname);
-                        if (strlen(backup_reason) == 0)
-                                strcpy(backup_reason,"Network link down");
-			killvrrpd(12,ifname);
+                        strcpy(backup_reason,"Network link down");
+			killvrrpd(13,ifname);
 			}			
 		}
 	return (retval);
@@ -1348,6 +1349,7 @@ static void state_goto_master( vrrp_rt *vsrv )
 	if (monitor){ 
 		if (ethsup(vsrv) != 0) {
 			vsrv->wantstate = VRRP_STATE_BACK;
+			return;
 		}
 
 		for (ix=0; ix <= max_monitor; ix++) {
@@ -1362,11 +1364,9 @@ static void state_goto_master( vrrp_rt *vsrv )
                                        	vsrv->state = VRRP_STATE_INIT;
 				} else {
 					if (strcmp(backup_reason,"INIT state") != 0) 
-						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: Want to be master -> But another vrrpd process is state Backup : %s", vsrv->vrid, vif->ifname, statedownfilepath);
+						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: Want to be master -> But another vrrpd process is state Backup : %s" , vsrv->vrid, vif->ifname, statedownfilepath);
 					vsrv->wantstate = VRRP_STATE_BACK;
 	 				vsrv->state = VRRP_STATE_INIT;
-					if (strlen(backup_reason) == 0)
-						strcpy(backup_reason,"Another vrrpd with state Backup");
 				}
 			}	
 		}
@@ -1466,9 +1466,8 @@ static void state_init( vrrp_rt *vsrv )
 		VRRP_TIMER_SET( vsrv->ms_down_timer, delay );
 		vsrv->state = VRRP_STATE_BACK;
 		vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - INIT State (backup) -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
-		if (master_ipaddr) {
-			if (strlen(backup_reason) == 0) 
-				strcpy(backup_reason,"Read packet from peer");
+		if ((master_ipaddr) && (vsrv->wantstate == VRRP_STATE_BACK)){
+			strcpy(backup_reason,"Read packet from peer");
 			vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: be backup %s%s - Receive packet from Master -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 		}
 	        if (timenow != ((time_t)-1)){
@@ -1739,8 +1738,7 @@ static void signal_user( int nosig )
                 	vsrv->state = VRRP_STATE_INIT;
                 } else {
 			vsrv->wantstate = VRRP_STATE_BACK;
-			if (strlen(backup_reason) == 0)
-				strcpy(backup_reason,"receive backup signal");
+			strcpy(backup_reason,"receive backup signal");
 		}
         }
 
@@ -1867,11 +1865,13 @@ int main( int argc, char *argv[] )
 	signal( SIGTTOU, signal_user );
 
 	mypid = getpid();	
+
         /* create statedown file path */
         strcpy(statedownfilepath,PidDir);
         strcat(statedownfilepath,statedown);
 
         /* create statedir directory */
+        strcpy(pidfilepath,PidDir);
         strcat(statefilepath,PidDir);
         strcat(statefilepath,separetepath);
         snprintf(temp, sizeof(temp), ".vrrpstate%d", mypid);
@@ -1885,7 +1885,7 @@ int main( int argc, char *argv[] )
 	pidfile_write( vsrv );
 
         /* first lock as down */
-        killvrrpd(13,vsrv->vif.ifname);
+        killvrrpd(12,vsrv->vif.ifname);
 	strcpy(backup_reason,"INIT state");
 
 	/* main loop */
