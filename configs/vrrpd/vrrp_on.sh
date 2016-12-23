@@ -34,7 +34,12 @@ vrrip1=192.168.14.1
 
 #MOUNT vrrpd 
 echo "MOUNT vrrpd "
-vrrpd -i $int0 -v $id0 -M $ps $vrrip0 -d 2 -U $up -D $down
-vrrpd -i $int1 -v $id1 -M $ps $vrrip1 -d 2 -D $down
+# BY DEFAULT VIRTUAL MAC IS DISABLED (-n) 
+# ACTIVATE AT YOUR OWN RICK
+# SPANNING TREE MUST BE DISABLED
+# IF MAC REFRESH IS TOO SLOW A PING TO THE GATEWAY CAN BE AN ALTERNATIVE (in master & backup script)
+
+vrrpd -i $int0 -n -v $id0 -M $ps $vrrip0 -d 2 -U $up -D $down
+vrrpd -i $int1 -n -v $id1 -M $ps $vrrip1 -d 2 -D $down
 
 exit 0
