@@ -1,4 +1,4 @@
-# !/bin/sh
+#!/bin/bash
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 #
 # Date:11 Sept 2006 yh ps
@@ -34,3 +34,5 @@ vrrip1=192.168.14.1
 echo "MOUNT vrrpd "
 vrrpd -i $int0 -v $id0 -M $ps $vrrip0 -d 2 -U $up -D $down
 vrrpd -i $int1 -v $id1 -M $ps $vrrip1 -d 2 -D $down
+
+exit 0
