@@ -8,6 +8,8 @@ PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 # 
 #---------------------------------
 # Please take a look -> vrrpd client:  atropos --help
+# THIS IS A SAMPLE FILE WITH TWO PROCESS (TWO NICS)
+# ADAPT TO YOUR OWN CONFIGURATION !
 
 horodate=$(date +%d/%m/%Y_%R)
 
