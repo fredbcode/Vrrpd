@@ -5,7 +5,7 @@
 PATH=/sbin:/bin:/usr/sbin:/usr/bin
 #variables
 horodate=$(date +%d/%m/%Y_%R)
-mois=$(date +%b)
+month=$(date +%b)
 ##--------------------------------##
 
 echo "Down int"
