@@ -828,7 +828,7 @@ static void usage( void )
 	fprintf( stderr, "vrrpd version %s\n", VRRPD_VERSION );
 	fprintf( stderr, "Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-z prio] [-x prio] [-nh] ipaddr\n" );
 	fprintf( stderr, "  -h       : display this short inlined help\n" );
-	fprintf( stderr, "  -n       : Dont handle the virtual mac address\n" );
+	fprintf( stderr, "  -n       : handle virtual mac address\n" );
 	fprintf( stderr, "  -i ifname: the interface name to run on\n" );
 	fprintf( stderr, "  -v vrid  : the id of the virtual server [1-255]\n" );
 	fprintf( stderr, "  -s       : Switch the preemption mode (%s by default)\n"
@@ -943,14 +943,14 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 {
 	vrrp_if *vif = &vsrv->vif;
 	int	c;
-
+	vsrv->no_vmac = 1;
 	while( 1 ){
 		c = getopt( argc, argv, "f:M:Vhnsi:v:a:p:z:x:d:D:U:I:O:" );
 		/* if the parsing is completed, exit */
 		if( c == EOF )	break;
 		switch( c ){
 		case 'n':
-			vsrv->no_vmac	= 1;
+			vsrv->no_vmac	= 0;
 			break;
 		case 's':
 			vsrv->preempt	= !vsrv->preempt;

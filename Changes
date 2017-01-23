@@ -1,3 +1,8 @@
+23/01/2017 vrrpd 1.15
+
+Update vrrp interval (now default = 2 seconds)
+Virtual Mac disabled by default
+
 07/01/2016 vrrpd 1.14
 
 Code cleaning

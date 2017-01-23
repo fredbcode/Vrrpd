@@ -47,7 +47,7 @@ typedef struct {	/* rfc2338.5.1 */
 #define VRRP_AUTH_NONE	0	/* no authentification -- rfc2338.5.3.6 */
 #define VRRP_AUTH_PASS	1	/* password authentification -- rfc2338.5.3.6 */
 #define VRRP_AUTH_AH	2	/* AH(IPSec) authentification - rfc2338.5.3.6 */
-#define VRRP_ADVER_DFL	1	/* advert. interval (in sec) -- rfc2338.5.3.7 */
+#define VRRP_ADVER_DFL	2	/* advert. interval (in sec) -- rfc2338.5.3.7 */
 #define VRRP_PREEMPT_DFL 1	/* rfc2338.6.1.2.Preempt_Mode */
 
 /* implementation specific */
