@@ -1456,6 +1456,7 @@ static void state_leave_master( vrrp_rt *vsrv, int advF )
 static void state_init( vrrp_rt *vsrv )
 {	
 
+	vrrpd_log(LOG_WARNING, "Debug init %d VRRP ID %d on %s: %s%s - INIT State (backup) -",vsrv->wantstate, vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 	if ( vsrv->priority == VRRP_PRIO_OWNER ) {
 		 state_goto_master( vsrv );
 	}
