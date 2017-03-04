@@ -1501,6 +1501,7 @@ static void state_back( vrrp_rt *vsrv )
 	if( (!len && VRRP_TIMER_EXPIRED(vsrv->ms_down_timer)) 
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
+		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: Debux time expire %d :  VID %d and another password !", vsrv->ms_down_time, vsrv->vrid, vsrv->vif.ifname, vsrv->vrid);
 		vsrv->wantstate = 0;
 		state_goto_master( vsrv );
 		return;
