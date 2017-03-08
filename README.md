@@ -19,7 +19,7 @@ Tested on Linux only http://numsys.eu
 * Atropos client - You can use atropos for change or/and know the master's state (for example in supervision script)
 
 With vmac disable Spanning Tree Protocol (STP) on the switch ports where VRRP is running !
-On VM vmac should be disabled (-n)
+On VM vmac should be disabled (default: -n for enabled)
 
 The Virtual Router Redundancy Protocol (VRRP) is a computer networking protocol that provides for automatic assignment of available Internet Protocol (IP).
 
@@ -57,7 +57,7 @@ ifconfig eth0:0 down
 
 Of course, you can put whatever you like.
 
-The virtual MAC address is automaticaly generated
+The virtual MAC address is automatically generated
 
 So, In our case there are three adresses on Master
 
@@ -73,7 +73,7 @@ This prevent newtork problem because single interface failure can cause asymmetr
 vrrpd version Advanced Vrrpd 1.11
 Usage: vrrpd -i ifname -v vrid [ -M monitor ] [-s] [-a auth] [-p prio] [-z prio] [-x prio] [-nh] ipaddr
   -h       : display this short inlined help
-  -n       : Dont handle the virtual mac address
+  -n       : handle the virtual mac address
   -i ifname: the interface name to run on
   -v vrid  : the id of the virtual server [1-255]
   -s       : Switch the preemption mode (Enabled by default)

@@ -1,4 +1,18 @@
-Vrrpd now can't start without same ID parameters 
+23/01/2017 vrrpd 1.15
+
+Update vrrp interval (now default = 2 seconds)
+Virtual Mac disabled by default
+
+07/01/2016 vrrpd 1.14
+
+Code cleaning
+Atropos: Improve information 
+ARM (linux) compatibility
+Remove information files from tmp (can be changed now in vrrpd.h VRRP_PIDDIR_DFL) 
+
+23/06/2015 vrrpd 1.13
+
+Vrrpd security: Daemon cannot start with the same VRID than other - and different password - 
 Fix: Remove all compile warnings.
 Atropos show all informations (status, time to live, etc)
 Fix: bad return to prompt (-h ou -V) 

@@ -7,4 +7,14 @@
 
 it requires to be run as root.
 
+ABOUT ARM
+
+In Makefile change:
+
+-CC = gcc
+
+By
+
++CC = arm-v5te-linux-gnueabi-gcc
+
 

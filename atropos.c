@@ -37,11 +37,12 @@ typedef u_int8_t u8;
 #endif
 #define DATA_MAX 10000
 
-char version1[10] = "0.90";
+int max_monitor = 9;
+char version1[10] = "1.0";
 char buff[80];
 char data[DATA_MAX];
 char pidend[6] = ".pid";
-char temp2[2] = "/";
+char separetepath[2] = "/";
 int monitor;
 int pid;
 int ix = 0;
@@ -50,13 +51,11 @@ int max_mac = 6;
 int max_count = 5;
 int nb;
 int retval;
-char globalstatedown[FILENAME_MAX+1];
-char statedown[FILENAME_MAX+1];
-char statetemp[18] = "/vrrpdstatedown_";
-char statetemp2[FILENAME_MAX+1];
+
 static char	PidDir[FILENAME_MAX+1];
 char namepid[FILENAME_MAX+1]="vrrpd_";
 char temp[FILENAME_MAX+1];
+char finalfile[FILENAME_MAX+1];
 
 DIR *currentDir;
 struct dirent *fichier;
@@ -92,6 +91,7 @@ unsigned int opt_a = 0,					/* Show-all-interfaces flag. */			/* Verbose flag. *
 	reduce = 0;
 
 void fonctinfo() {
+
 		FILE * child_process = popen("ps -e |grep vrrpd | wc -l", "r");
 		fgets(buf, sizeof(buf), child_process);
 		pclose(child_process);
@@ -110,28 +110,28 @@ void fonctinfo() {
                 } else {
                 	while( NULL != ( fichier = readdir( currentDir ))) {
                         	if(!strncmp(namepid, fichier->d_name, 6) ){
-                                	strcpy(statetemp2,PidDir);
-                                        strcat(statetemp2,temp2);
-                                        strcat(statetemp2,fichier->d_name);
-                                        	if ((f = fopen(statetemp2, "rb")) != NULL){
+                                	strcpy(finalfile,PidDir);
+                                        strcat(finalfile,separetepath);
+                                        strcat(finalfile,fichier->d_name);
+                                        	if ((f = fopen(finalfile, "rb")) != NULL){
                                                 	fgets(buff, sizeof(buff), f);
                                                         fclose(f);
                                                         int pid = atoi(buff);
                                                         kill(pid,SIGUSR1);
-							char vrrp_tmp[FILENAME_MAX]="/tmp/";
+							char vrrp_tmp[FILENAME_MAX] = VRRP_PIDDIR_DFL;
 							sleep(1);
-						        snprintf(temp, sizeof(temp), ".vrrpstate%d", pid);
-        						strcat(vrrp_tmp, temp);
+							snprintf(temp, sizeof(temp), "/.vrrpstate%d", pid);
+							strcat(vrrp_tmp, temp);
         						if ((f = fopen(vrrp_tmp, "r")) != NULL){
        								while (fgets(data, DATA_MAX, f) != NULL) 
         							{
             								printf("%s", data);
         							}
 							 } else {
-                               						fprintf(stdout, "VRRP PID %d File %s STATE NOT FOUND\n", pid, vrrp_tmp);
+                               						fprintf(stdout, "VRRP PID %d File %s STATE NOT FOUND \n", pid, vrrp_tmp);
 								}
 						 }
-                                                        statetemp2[0]='\0';
+                                                        finalfile[0]='\0';
 							printf("\n");
             						printf("############################################################\n\n");
                                                  }
@@ -145,15 +145,14 @@ void fonctinfo() {
 	        		cpt++;
 	       			printf ("%s",ligne);
 			}
-			fclose (filestate);
-			}
-		else{
+				fclose (filestate);
+		} else {
 			printf ("Erreur d'ouverture du fichier\n");
- 			}
+ 		}
 
 
+	printf("\n");
 	for (ix=0; ix < max_mac; ix++) {
-
 		struct  ifreq  devea;
 		int ether = ix;
 		s = socket(AF_INET, SOCK_DGRAM, 0);
@@ -166,7 +165,6 @@ void fonctinfo() {
 		sprintf(devea.ifr_name, "eth%d", ether);
 		if (ioctl(s, SIOCGIFHWADDR, &devea) == 0)
 		{
-			printf("\n");
 			printf("eth%d Current MAC is: ",ether);
 			for (i = 0; i < max_mac; i++)
 			{
@@ -178,6 +176,14 @@ void fonctinfo() {
 			printf("\n");
 		}		
 	}
+	printf("\n");
+        char command[50];
+	snprintf(command,sizeof command,"grep -sh state %s/.*vrrpstate*",PidDir);
+	system(command);
+
+	snprintf(command,sizeof command,"rm %s/.*vrrpstate*",PidDir);
+	system(command);
+
 	printf("\n");
 	fprintf(stdout, "Be careful, Atropos doesn't show virtual mac address of vlan interface");
 	printf("\n");
@@ -229,15 +235,15 @@ int main(int argc, char **argv)
                         } else {
                         	while( NULL != ( fichier = readdir( currentDir ))) {
                         		if(!strncmp(namepid, fichier->d_name, 6) ){
-                                        	strcpy(statetemp2,PidDir);
-                                                strcat(statetemp2,temp2);
-                                                strcat(statetemp2,fichier->d_name);
-                                                if ((f = fopen(statetemp2, "rb")) != NULL){
+                                        	strcpy(finalfile,PidDir);
+                                                strcat(finalfile,separetepath);
+                                                strcat(finalfile,fichier->d_name);
+                                                if ((f = fopen(finalfile, "rb")) != NULL){
                                                        	fgets(buff, sizeof(buff), f);
                                                        	fclose(f);
                                                        	int pid = atoi(buff);
                                                         kill(pid,SIGTTIN);
-                                                	statetemp2[0]='\0';
+                                                	finalfile[0]='\0';
                                                 }
                                         }
                        }
@@ -257,15 +263,15 @@ int main(int argc, char **argv)
                         } else {
                                 while( NULL != ( fichier = readdir( currentDir ))) {
                                         if(!strncmp(namepid, fichier->d_name, 6) ){
-                                                strcpy(statetemp2,PidDir);
-                                                strcat(statetemp2,temp2);
-                                                strcat(statetemp2,fichier->d_name);
-                                                if ((f = fopen(statetemp2, "rb")) != NULL){
+                                                strcpy(finalfile,PidDir);
+                                                strcat(finalfile,separetepath);
+                                                strcat(finalfile,fichier->d_name);
+                                                if ((f = fopen(finalfile, "rb")) != NULL){
                                                         fgets(buff, sizeof(buff), f);
                                                         fclose(f);
                                                         int pid = atoi(buff);
                                                         kill(pid,SIGTTOU);
-                                                        statetemp2[0]='\0';
+                                                        finalfile[0]='\0';
                                                 }
                                         }
                        }
@@ -291,15 +297,15 @@ int main(int argc, char **argv)
                                 	} else {
                                 	while( NULL != ( fichier = readdir( currentDir ))) {
                                         	if(!strncmp(namepid, fichier->d_name, 6) ){
-                                                	strcpy(statetemp2,PidDir);
-                                                	strcat(statetemp2,temp2);
-                                                	strcat(statetemp2,fichier->d_name);
-                                                	if ((f = fopen(statetemp2, "rb")) != NULL){
+                                                	strcpy(finalfile,PidDir);
+                                                	strcat(finalfile,separetepath);
+                                                	strcat(finalfile,fichier->d_name);
+                                                	if ((f = fopen(finalfile, "rb")) != NULL){
                                                         	fgets(buff, sizeof(buff), f);
                                                         	fclose(f);
                                                         	int pid = atoi(buff);
                                                                	kill(pid,SIGUSR2);
-                                                		statetemp2[0]='\0';
+                                                		finalfile[0]='\0';
                                                 	}	
                                         	}
                                 	}
@@ -318,15 +324,15 @@ int main(int argc, char **argv)
                                         } else {
                                         while( NULL != ( fichier = readdir( currentDir ))) {
                                                 if(!strncmp(namepid, fichier->d_name, 6) ){
-                                                        strcpy(statetemp2,PidDir);
-                                                        strcat(statetemp2,temp2);
-                                                        strcat(statetemp2,fichier->d_name);
-                                                        if ((f = fopen(statetemp2, "rb")) != NULL){
+                                                        strcpy(finalfile,PidDir);
+                                                        strcat(finalfile,separetepath);
+                                                        strcat(finalfile,fichier->d_name);
+                                                        if ((f = fopen(finalfile, "rb")) != NULL){
                                                                 fgets(buff, sizeof(buff), f);
                                                                 fclose(f);
                                                                 int pid = atoi(buff);
                                                                 kill(pid,SIGUSR2);
-                                                        	statetemp2[0]='\0';
+                                                        	finalfile[0]='\0';
                                                         }
                                                 }
                                         }
