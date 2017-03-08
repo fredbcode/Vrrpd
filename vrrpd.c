@@ -150,33 +150,33 @@ void killvrrpd(int killnu,char *ifname)
 	}
 
 /* Search another process with Backup state */
-//	if (killnu == 12){
-		for (ix=0; ix <= max_monitor; ix++) {
-			sprintf (&statedownfilepath[24],"%d",ix);
-/* AT FIRST LOCK MY VRRPD PROCESS */
-			/* Backup myself */
-			/* DON'T REMOVE, DOUBLE "IF" AVOID UNDE FILES */
-			if ((f = fopen(statedownfilepath, "rb")) == NULL){
-				if ((strlen(globalstatedown) == 0)){
-					if (monitor){
-						f = fopen(statedownfilepath,"w");
-                       				fprintf(f, "%d", mypid );
-						/* Now record my previous state */
-						strcpy(globalstatedown,statedownfilepath);
-		 				fclose(f);
-					}
-					vsrv->wantstate = VRRP_STATE_INIT;
-					vsrv->state = VRRP_STATE_INIT;
-					/* Killnu = 12 only at start */
-					if (killnu == 12){
-						return;
-					}
+
+	for (ix=0; ix <= max_monitor; ix++) {
+		sprintf (&statedownfilepath[24],"%d",ix);
+	/* AT FIRST LOCK MY VRRPD PROCESS */
+		/* Backup myself */
+		/* DON'T REMOVE, DOUBLE "IF" AVOID UNDE FILES */
+		if ((f = fopen(statedownfilepath, "rb")) == NULL){
+			if ((strlen(globalstatedown) == 0)){
+				if (monitor){
+					f = fopen(statedownfilepath,"w");
+	       				fprintf(f, "%d", mypid );
+					/* Now record my previous state */
+					strcpy(globalstatedown,statedownfilepath);
+	 				fclose(f);
 				}
-			} else {
-				fclose(f);
+				vsrv->wantstate = VRRP_STATE_INIT;
+				vsrv->state = VRRP_STATE_INIT;
+				/* Killnu = 12 only at start */
+				if (killnu == 12){
+					return;
+				}
 			}
+		} else {
+			fclose(f);
 		}
-//	}
+	}
+
 
 /* Now action ! You shall not pass ! */
 	
@@ -1182,6 +1182,7 @@ static int vrrp_read( vrrp_rt *vsrv, char *buf, int buflen )
 				len = 2 ;
 				vsrv->state = VRRP_STATE_BACK;
 				vsrv->wantstate = VRRP_STATE_BACK;
+				vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: FRED: There is already VRRPD daemon with same VID %d and another password !", vsrv->vrid, vsrv->vif.ifname, vsrv->vrid);
 			}
 		}
 	
@@ -1456,7 +1457,7 @@ static void state_leave_master( vrrp_rt *vsrv, int advF )
 static void state_init( vrrp_rt *vsrv )
 {	
 
-	vrrpd_log(LOG_WARNING, "Debug init %d VRRP ID %d on %s: %s%s - INIT State (backup) -",vsrv->wantstate, vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+	vrrpd_log(LOG_WARNING, "Init %d VRRP ID %d on %s: %s%s - INIT State (backup) -",vsrv->wantstate, vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 	if ( vsrv->priority == VRRP_PRIO_OWNER ) {
 		 state_goto_master( vsrv );
 	}
@@ -1501,7 +1502,7 @@ static void state_back( vrrp_rt *vsrv )
 	if( (!len && VRRP_TIMER_EXPIRED(vsrv->ms_down_timer)) 
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
-		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: Debux time expire %d :  VID %d and another password !", vsrv->ms_down_time, vsrv->vrid, vsrv->vif.ifname, vsrv->vrid);
+		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: time expire %d :  VID %d and another password !", vsrv->vrid, vsrv->vif.ifname, vsrv->ms_down_timer, vsrv->vrid);
 		vsrv->wantstate = 0;
 		state_goto_master( vsrv );
 		return;
