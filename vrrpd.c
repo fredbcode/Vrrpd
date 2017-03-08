@@ -533,31 +533,31 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 	vrrp_if 	*vif	= &vsrv->vif;	
 	/* MUST verify that the IP TTL is 255 */
 	if( ip->ttl != VRRP_IP_TTL ) {
-		VRRP_LOG(("invalid ttl. %d and expect %d", ip->ttl,VRRP_IP_TTL));
+		vrrpd_log(LOG_WARNING,"invalid ttl. %d and expect %d", ip->ttl,VRRP_IP_TTL);
 		return 1;
 	}
 	/* MUST verify the VRRP version */
 	if( (hd->vers_type >> 4) != VRRP_VERSION ){
-		VRRP_LOG(("invalid version. %d and expect %d"
-			, (hd->vers_type >> 4), VRRP_VERSION));
+		vrrpd_log(LOG_WARNING,"invalid version. %d and expect %d"
+			, (hd->vers_type >> 4), VRRP_VERSION);
 		return 1;
 	}
 	/* MUST verify that the received packet length is greater than or
 	** equal to the VRRP header */
 	if( (ntohs(ip->tot_len)-ihl) <= sizeof(vrrp_pkt) ){
-		VRRP_LOG(("ip payload too short. %d and expect at least %zu"
-			, ntohs(ip->tot_len)-ihl, sizeof(vrrp_pkt) ));
+		vrrpd_log(LOG_WARNING,"ip payload too short. %d and expect at least %zu"
+			, ntohs(ip->tot_len)-ihl, sizeof(vrrp_pkt) );
 		return 1;
 	}
 	/* WORK: MUST verify the VRRP checksum */
 	if( in_csum( (u_short*)hd, vrrp_hd_len(vsrv), 0) ){
-		VRRP_LOG(("Invalid vrrp checksum" ));
+		vrrpd_log(LOG_WARNING,"Invalid vrrp checksum" );
 		return 1;
 	}
 	/* MUST perform authentication specified by Auth Type */
 	/* MUST verify that the VRID is valid on the receiving interface */
 	if( vsrv->vrid != hd->vrid ){
-		return 1;
+		return 3;
 	}
 
 	/* ok we have the same vid */
@@ -604,9 +604,9 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 	/* MUST verify that the Adver Interval in the packet is the same as
 	** the locally configured for this virtual router */
 	if( vsrv->adver_int/VRRP_TIMER_HZ != hd->adver_int ){
-		VRRP_LOG(("advertissement interval mismatch mine=%d rcved=%d"
-			, vsrv->adver_int, hd->adver_int ));
-		return 1;
+		vrrpd_log(LOG_WARNING,"VRRPD advertissement: same id %d but interval mismatch mine=%d rcved=%d"
+			, vsrv->vrid, vsrv->adver_int/VRRP_TIMER_HZ, hd->adver_int );
+//		return 1;
 	}
 
 	/* Scott added 9-4-02 */
@@ -1167,25 +1167,26 @@ static int vrrp_read( vrrp_rt *vsrv, char *buf, int buflen )
 	if( select( vsrv->sockfd + 1, &readfds, NULL, NULL, &timeout ) > 0 ){
 		len = read( vsrv->sockfd, buf, buflen );
 
-//		printf("packet received (%d bytes)\n",len);
-		if( vrrp_in_chk( vsrv, (struct iphdr *)buf ) ){
-//			printf("bogus packet!\n");
-			len = 0;
+//		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: packet received (%d bytes)\n", vsrv->vrid, vsrv->vif.ifname, len);
+		if( vrrp_in_chk( vsrv, (struct iphdr *)buf ) == 3){
+			// Another vrrpd process without the same ID
+			len = 0; 
 		}
-
 		if( vrrp_in_chk( vsrv, (struct iphdr *)buf ) == 2 ){
 //			printf("bogus packet!\n");
 			if (vsrv->state == VRRP_STATE_MAST){	              
 				vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: There is already VRRPD daemon with same VID %d and another password !", vsrv->vrid, vsrv->vif.ifname, vsrv->vrid);
-                		len = 0;}
-			else {
+                		len = 0;
+			} else {
 				len = 2 ;
 				vsrv->state = VRRP_STATE_BACK;
 				vsrv->wantstate = VRRP_STATE_BACK;
-				vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: FRED: There is already VRRPD daemon with same VID %d and another password !", vsrv->vrid, vsrv->vif.ifname, vsrv->vrid);
 			}
 		}
-	
+		if( vrrp_in_chk( vsrv, (struct iphdr *)buf )){
+//			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: bogus packet",vsrv->vrid, vsrv->vif.ifname);
+			len = 0;
+		}	
 	}
 	return len;
 }
@@ -1457,7 +1458,7 @@ static void state_leave_master( vrrp_rt *vsrv, int advF )
 static void state_init( vrrp_rt *vsrv )
 {	
 
-	vrrpd_log(LOG_WARNING, "Init %d VRRP ID %d on %s: %s%s - INIT State (backup) -",vsrv->wantstate, vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
+	vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: %s%s - INIT State (backup) -", vsrv->vrid, vsrv->vif.ifname, master_ipaddr ? ipaddr_to_str(master_ipaddr) : "", master_ipaddr ? " is up, " : "");
 	if ( vsrv->priority == VRRP_PRIO_OWNER ) {
 		 state_goto_master( vsrv );
 	}
@@ -1502,7 +1503,8 @@ static void state_back( vrrp_rt *vsrv )
 	if( (!len && VRRP_TIMER_EXPIRED(vsrv->ms_down_timer)) 
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
-		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: time expire %d :  VID %d and another password !", vsrv->vrid, vsrv->vif.ifname, vsrv->ms_down_timer, vsrv->vrid);
+		int32_t	delta = VRRP_TIMER_DELTA(vsrv->ms_down_timer);
+		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: time expired ? %d :  VID %d", vsrv->vrid, vsrv->vif.ifname, delta, vsrv->vrid);
 		vsrv->wantstate = 0;
 		state_goto_master( vsrv );
 		return;
