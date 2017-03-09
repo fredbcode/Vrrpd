@@ -570,6 +570,7 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 				if ((vsrv->state = VRRP_STATE_BACK) || (vsrv->state = VRRP_STATE_INIT)){
 					vrrpd_log(LOG_WARNING,"VRRPD group: receive an invalid passwd ! \n");
 					vrrpd_log(LOG_WARNING,"passwd peer: %s passwd: %s - vid: %d from same vid: %d \n", pw, vif->auth_data, vsrv->vrid, hd->vrid);
+					// Avoid full log ...
 					sleep (2);
 					kill(mypid,SIGTERM);
 				} else {
@@ -586,6 +587,7 @@ static int vrrp_in_chk( vrrp_rt *vsrv, struct iphdr *ip )
 				killvrrpd(13, vsrv->vif.ifname );
 				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive an invalid passwd type from peer \n", vsrv->vrid);
 				vrrpd_log(LOG_WARNING,"VRRPD group: Vid: %d receive a %d auth, expecting %d ! from %d \n", vsrv->vrid, vif->auth_type, hd->auth_type, hd->vrid);
+				// Avoid full log ...
 				sleep (2);
 				kill(mypid,SIGTERM);
 			} else {
@@ -1206,11 +1208,13 @@ int ethsup(vrrp_rt *vsrv)
 	char ch[2];
 	int buf1;
 	int ch1;
-
-	// Ugly but slowly ...
+        // Sorry no standart library ...
+	// Ugly but more slowly ...
 	nb=rand() % (maxrand+1);
 
-	if (nb == 1) {
+	/* not at start */ 
+	if ((nb == 1) && (vsrv->state != VRRP_STATE_INIT)) {
+        	// Sorry but no standart library ...
 		FILE * child_process = popen("pgrep vrrpd | wc -w", "r");
 		fgets(buf, sizeof(buf), child_process);
 		pclose(child_process);
@@ -1222,62 +1226,58 @@ int ethsup(vrrp_rt *vsrv)
 		if (child_process == NULL) {
 			vrrpd_log(LOG_WARNING,"Could not open pipe:\n");
 		}
-		/* not at start */ 
-		if ( vsrv->state != VRRP_STATE_INIT) {
-				/* First try maybe wrong ? */
-				if ( buf1 < ch1 ) {
-					sleep(2);
-					FILE * child_process = popen("pgrep vrrpd | wc -w", "r");
-					fgets(buf, sizeof(buf), child_process);
-					pclose(child_process);
-					if ( buf1 < ch1 ) {
-						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING %d vrrpd run, monitor = %d", vsrv->vrid, ifname, buf1, ch1);
-						vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: Exit Vrrpd", vsrv->vrid, ifname );
-						kill(mypid,15);
-					}	
+		/* First try could be wrong ? */
+		if ( buf1 < ch1 ) {
+        		// Sorry but no standart library ...
+			FILE * child_process = popen("pgrep vrrpd | wc -w", "r");
+			sleep(2);
+			// Ouch ...
+			fgets(buf, sizeof(buf), child_process);
+			pclose(child_process);
+			if ( buf1 < ch1 ) {
+				vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING %d vrrpd run, monitor = %d", vsrv->vrid, ifname, buf1, ch1);
+				vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: Exit Vrrpd", vsrv->vrid, ifname );
+				kill(mypid,15);
 				}	
-		}
-	}
+		}	
 	
-	if (( skfd = socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 )
-		{
-		vrrpd_log(LOG_WARNING,"socket error\n");
-		exit(-1);
+		if (( skfd = socket( AF_INET, SOCK_DGRAM, 0 ) ) < 0 ){
+			vrrpd_log(LOG_WARNING, "ethtool socket error remove -M \n");
+			exit(-1);
 		}
 
-	retval = detect_ethtool(skfd, ifname);
-	close(skfd);
-		
-	if ((retval == 2) && ((vsrv->wantstate == VRRP_STATE_MAST) || vsrv->wantstate == 0 )) {
-		sleep(2);
-		skfd = socket( AF_INET, SOCK_DGRAM, 0 );
 		retval = detect_ethtool(skfd, ifname);
 		close(skfd);
-		if ((retval == 2) && (vsrv->state != VRRP_STATE_MAST)) {
-			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Could not determine link status (VM Hardware ?) %s\n", vsrv->vrid, ifname, ifname);
+		
+		if ((retval == 2) && ((vsrv->wantstate == VRRP_STATE_MAST) || vsrv->wantstate == 0 )) {
+			sleep(2);
 			skfd = socket( AF_INET, SOCK_DGRAM, 0 );
 			retval = detect_ethtool(skfd, ifname);
 			close(skfd);
+			if ((retval == 2) && (vsrv->state != VRRP_STATE_MAST)) {
+				vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Could not determine link status (VM Hardware ?) %s\n", vsrv->vrid, ifname, ifname);
+				skfd = socket( AF_INET, SOCK_DGRAM, 0 );
+				retval = detect_ethtool(skfd, ifname);
+				close(skfd);
 			}			
 		}
 	/* Don't stop the process just warning - Could not determine link status - */
-	if (retval == 2 )
-		retval = 0;
+		if (retval == 2 )
+			retval = 0;
 
-	if (retval == 1){
-		sleep(2);
-		skfd = socket( AF_INET, SOCK_DGRAM, 0 );
-		retval = detect_ethtool(skfd, ifname);
-		close(skfd);
-		if (retval == 1)
-			{
+		if (retval == 1){
+			sleep(2);
+			skfd = socket( AF_INET, SOCK_DGRAM, 0 );
+			retval = detect_ethtool(skfd, ifname);
+			close(skfd);
+		if (retval == 1){
 			vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: WARNING: Link down %s (state backup)",vsrv->vrid, ifname, ifname);
                         strcpy(backup_reason,"Network link down");
 			killvrrpd(13,ifname);
 			}			
 		}
+	}		
 	return (retval);
-		
 }
 /****************************************************************
 NAME	: send_gratuitous_arp			00/05/11 11:56:30
@@ -1366,7 +1366,7 @@ static void state_goto_master( vrrp_rt *vsrv )
                                        	vsrv->state = VRRP_STATE_INIT;
 				} else {
 					if (strcmp(backup_reason,"INIT state") != 0) 
-						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: Want to be master -> But another vrrpd process is state Backup : %s" , vsrv->vrid, vif->ifname, statedownfilepath);
+						vrrpd_log(LOG_WARNING, "VRRP ID %d on %s: WARNING: No packet from Master: Want to be master but another vrrpd process is Backup : %s" , vsrv->vrid, vif->ifname, statedownfilepath);
 					vsrv->wantstate = VRRP_STATE_BACK;
 	 				vsrv->state = VRRP_STATE_INIT;
 				}
@@ -1503,8 +1503,7 @@ static void state_back( vrrp_rt *vsrv )
 	if( (!len && VRRP_TIMER_EXPIRED(vsrv->ms_down_timer)) 
 			|| vsrv->wantstate == VRRP_STATE_MAST ){
 		//the first time that the backup take the role it work but after loop if wantstate!= 0 *AA*
-		int32_t	delta = VRRP_TIMER_DELTA(vsrv->ms_down_timer);
-		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: time expired ? %d :  VID %d", vsrv->vrid, vsrv->vif.ifname, delta, vsrv->vrid);
+		vrrpd_log(LOG_WARNING,"VRRP ID %d on %s: delay expired = %d no response after %d + %zu ms VID %d", vsrv->vrid, vsrv->vif.ifname, vsrv->adver_int/VRRP_TIMER_HZ , vsrv->adver_int/VRRP_TIMER_HZ, vsrv->ms_down_timer/VRRP_TIMER_HZ, vsrv->vrid);
 		vsrv->wantstate = 0;
 		state_goto_master( vsrv );
 		return;
@@ -1599,7 +1598,7 @@ static void state_mast( vrrp_rt *vsrv )
 		}
 	} else {
 		vsrv->wantstate = VRRP_STATE_INIT;
-		sleep(5);
+		sleep(2);
 	}
 
 }
