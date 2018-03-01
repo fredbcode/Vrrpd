@@ -46,8 +46,9 @@ case $saisie
 		update-rc.d vrrp defaults 2>/dev/null
 		if [ -d /run/systemd/system ] 
 		then
-		        cp configs/vrrp.services
+		        cp configs/vrrp.service /lib/systemd/system/
            		systemctl enable vrrp 
+			systemctl daemon reload
 		fi
 		
 		;;
