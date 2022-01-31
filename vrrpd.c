@@ -225,7 +225,7 @@ void killvrrpd(int killnu,char *ifname)
 ****************************************************************/
 static char *pidfile_get_name( vrrp_rt *vsrv )
 {
-	static char pidfile[FILENAME_MAX+1];
+	static char pidfile[2*FILENAME_MAX+1];
 	snprintf( pidfile, sizeof(pidfile), "%s/" VRRP_PID_FORMAT
 					, PidDir
 					, vsrv->vif.ifname );
