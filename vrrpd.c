@@ -332,27 +332,6 @@ static u_short in_csum( u_short *addr, int len, u_short csum)
 	return (answer);
 }
 
-
-/****************************************************************
- NAME	: get_dev_from_ip			00/02/08 06:51:32
- AIM	:
- REMARK	:
-****************************************************************/
-static uint32_t ifname_to_ip( char *ifname )
-{
-	struct ifreq	ifr;
-	int		fd	= socket(AF_INET, SOCK_DGRAM, 0);
-	uint32_t	addr	= 0;
-	if (fd < 0) 	return (-1);
-	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
-	if (ioctl(fd, SIOCGIFADDR, (char *)&ifr) == 0) {
-		struct sockaddr_in *sin = (struct sockaddr_in *)&ifr.ifr_addr;
-		addr = ntohl(sin->sin_addr.s_addr);
-	}
-	close(fd);
-	return addr;
-}
-
 /****************************************************************
  NAME	: get_dev_from_ip			00/02/08 06:51:32
  AIM	:
@@ -962,12 +941,6 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 			break;
 		case 'i':
 			vif->ifname	= strdup( optarg );
-			/* get the ip address */
-			vif->ipaddr	= ifname_to_ip( optarg );
-			if( !vif->ipaddr ){
-				fprintf( stderr, "no interface found!\n" );
-				goto err;
-			}
 			/* get the hwaddr */
 			if( hwaddr_get( vif->ifname, vif->hwaddr
 					, sizeof(vif->hwaddr)) ){
