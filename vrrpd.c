@@ -964,10 +964,6 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 			vif->ifname	= strdup( optarg );
 			/* get the ip address */
 			vif->ipaddr	= ifname_to_ip( optarg );
-			if( !vif->ipaddr ){
-				fprintf( stderr, "no interface found!\n" );
-				goto err;
-			}
 			/* get the hwaddr */
 			if( hwaddr_get( vif->ifname, vif->hwaddr
 					, sizeof(vif->hwaddr)) ){
@@ -1123,10 +1119,6 @@ static int chk_min_cfg( vrrp_rt *vsrv )
 	}
 	if( vsrv->vrid == 0 ){
 		fprintf(stderr, "the virtual id must be set!\n");
-		return -1;
-	}
-	if( vsrv->vif.ipaddr == 0 ){
-		fprintf(stderr, "the interface ipaddr must be set!\n");
 		return -1;
 	}
 	/* make vrrp use the native hwaddr and not the virtual one */
