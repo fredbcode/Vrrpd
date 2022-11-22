@@ -1828,7 +1828,7 @@ int main( int argc, char *argv[] )
 	   	 *slash++ = 0;
 	   	/* retrieve prefix length */
 	   	   	length = (uint8_t)atoi(slash);
-	     	 if ((length > 32) || (length < 0)) length = 32;
+	     	 if (length > 32) length = 32;
 	   	 }
 			vrrpd_log(LOG_WARNING, "vrrpd virtual IP %s\n", argv[argc]);
 			uint32_t ipaddr = inet_addr( argv[argc] );
