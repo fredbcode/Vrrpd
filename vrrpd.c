@@ -332,6 +332,27 @@ static u_short in_csum( u_short *addr, int len, u_short csum)
 	return (answer);
 }
 
+
+/****************************************************************
+ NAME	: get_dev_from_ip			00/02/08 06:51:32
+ AIM	:
+ REMARK	:
+****************************************************************/
+static uint32_t ifname_to_ip( char *ifname )
+{
+	struct ifreq	ifr;
+	int		fd	= socket(AF_INET, SOCK_DGRAM, 0);
+	uint32_t	addr	= 0;
+	if (fd < 0) 	return (-1);
+	strncpy(ifr.ifr_name, ifname, sizeof(ifr.ifr_name));
+	if (ioctl(fd, SIOCGIFADDR, (char *)&ifr) == 0) {
+		struct sockaddr_in *sin = (struct sockaddr_in *)&ifr.ifr_addr;
+		addr = ntohl(sin->sin_addr.s_addr);
+	}
+	close(fd);
+	return addr;
+}
+
 /****************************************************************
  NAME	: get_dev_from_ip			00/02/08 06:51:32
  AIM	:
@@ -941,6 +962,8 @@ static int parse_cmdline( vrrp_rt *vsrv, int argc, char *argv[] )
 			break;
 		case 'i':
 			vif->ifname	= strdup( optarg );
+			/* get the ip address */
+			vif->ipaddr	= ifname_to_ip( optarg );
 			/* get the hwaddr */
 			if( hwaddr_get( vif->ifname, vif->hwaddr
 					, sizeof(vif->hwaddr)) ){
@@ -1096,10 +1119,6 @@ static int chk_min_cfg( vrrp_rt *vsrv )
 	}
 	if( vsrv->vrid == 0 ){
 		fprintf(stderr, "the virtual id must be set!\n");
-		return -1;
-	}
-	if( vsrv->vif.ipaddr == 0 ){
-		fprintf(stderr, "the interface ipaddr must be set!\n");
 		return -1;
 	}
 	/* make vrrp use the native hwaddr and not the virtual one */
@@ -1809,7 +1828,7 @@ int main( int argc, char *argv[] )
 	   	 *slash++ = 0;
 	   	/* retrieve prefix length */
 	   	   	length = (uint8_t)atoi(slash);
-	     	 if ((length > 32) || (length < 0)) length = 32;
+	     	 if (length > 32) length = 32;
 	   	 }
 			vrrpd_log(LOG_WARNING, "vrrpd virtual IP %s\n", argv[argc]);
 			uint32_t ipaddr = inet_addr( argv[argc] );

@@ -141,7 +141,6 @@ int ipaddr_op( int ifindex, uint32_t addr, uint8_t length, int addF )
 	req.n.nlmsg_type	= addF ? RTM_NEWADDR : RTM_DELADDR;
 	req.ifa.ifa_family	= AF_INET;
 	req.ifa.ifa_index	= ifindex;
-	req.ifa.ifa_prefixlen	= 32;
 	req.ifa.ifa_prefixlen	= length;
 	
 	addr = htonl( addr );
