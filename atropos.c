@@ -1,5 +1,5 @@
 /* Mode: C;
-* Atropos frederic Bourgeois http://numsys.eu 
+* Atropos frederic Bourgeois https://gitlab.com/fredbcode 
 */
 
 
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
 
 	else {
 		fprintf(stdout,"\n");
-		fprintf(stdout,"Atropos %s frederic Bourgeois http://numsys.eu\n", version1);
+		fprintf(stdout,"Atropos %s frederic Bourgeois https://gitlab.com/fredbcode\n", version1);
 		fprintf(stdout,"\n");
 		fprintf(stdout,"atropos --backup 		Be backup (caution: Do not use with priority !)\n");
 		fprintf(stdout,"atropos --reduce 		Reduce priority dynamically priority -10\n");
