@@ -1,3 +1,5 @@
+**Project moved to https://gitlab.com/fredbcode/Vrrpd**
+
 ## Advanced Vrrpd
 
 Advanced Vrrpd: high-availability solution, easy to use and easy to configure.
